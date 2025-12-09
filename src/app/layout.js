@@ -2,6 +2,7 @@ import "./globals.css";
 import { AuthProvider } from '@/contexts/AuthContext';
 import { ToastProvider } from '@/components/Toast';
 import { ConfirmProvider } from '@/components/ConfirmDialog';
+import PWARegister from '@/components/PWARegister';
 
 export const metadata = {
   title: "Task Manager - Organize Your Work",
@@ -47,6 +48,7 @@ export default function RootLayout({ children }) {
         <AuthProvider>
           <ToastProvider>
             <ConfirmProvider>
+              <PWARegister />
               {children}
             </ConfirmProvider>
           </ToastProvider>
