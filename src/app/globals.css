@@ -23,4 +23,84 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Mobile-optimized touch targets */
+@media (max-width: 768px) {
+  button,
+  a,
+  select,
+  input[type="submit"] {
+    min-height: 44px;
+    min-width: 44px;
+  }
+}
+
+/* Black placeholder text for all inputs and textareas */
+input::placeholder,
+textarea::placeholder,
+select::placeholder {
+  color: #000000 !important;
+  opacity: 0.6;
+}
+
+/* Black text for input values and select options */
+input,
+textarea,
+select {
+  color: #000000 !important;
+}
+
+/* Ensure select options are also black */
+select option {
+  color: #000000 !important;
+}
+
+/* Improve mobile scrolling */
+* {
+  -webkit-tap-highlight-color: rgba(0, 0, 0, 0);
+  -webkit-overflow-scrolling: touch;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+/* Active state feedback for mobile */
+button:active,
+a:active {
+  opacity: 0.7;
+}
+
+.active\:scale-98:active {
+  transform: scale(0.98);
+}
+
+/* Prevent zoom on input focus (iOS) */
+@media screen and (max-width: 768px) {
+  input[type="text"],
+  input[type="email"],
+  input[type="password"],
+  input[type="number"],
+  textarea,
+  select {
+    font-size: 16px !important;
+  }
+}
+
+@keyframes slide-up {
+  from {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.animate-slide-up {
+  animation: slide-up 0.3s ease-out;
 }

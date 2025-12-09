@@ -1,0 +1,90 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String     @id @default(auto()) @map("_id") @db.ObjectId
+  email         String     @unique
+  name          String
+  passwordHash  String
+  role          String     @default("worker") // admin, supervisor, manager, worker
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+  
+  projects      Project[]
+  tasks         Task[]
+  comments      Comment[]
+  refreshTokens RefreshToken[]
+}
+
+model RefreshToken {
+  id            String     @id @default(auto()) @map("_id") @db.ObjectId
+  hashedToken   String     @unique
+  userId        String     @db.ObjectId
+  user          User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt     DateTime
+  revokedAt     DateTime?
+  createdAt     DateTime   @default(now())
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+model Project {
+  id            String     @id @default(auto()) @map("_id") @db.ObjectId
+  name          String
+  description   String?
+  ownerId       String     @db.ObjectId
+  owner         User       @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+
+  tasks         Task[]
+  members       String[]   @db.ObjectId // Array of User IDs
+
+  @@index([ownerId])
+}
+
+model Task {
+  id            String     @id @default(auto()) @map("_id") @db.ObjectId
+  title         String
+  description   String?
+  status        String     @default("todo") // todo, in-progress, done
+  priority      String     @default("medium") // low, medium, high
+  projectId     String     @db.ObjectId
+  project       Project    @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  assignedTo    String?    @db.ObjectId // User ID
+  createdBy     String     @db.ObjectId
+  creator       User       @relation(fields: [createdBy], references: [id], onDelete: Cascade)
+  dueDate       DateTime?
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+
+  comments      Comment[]
+
+  @@index([projectId])
+  @@index([createdBy])
+  @@index([assignedTo])
+}
+
+model Comment {
+  id            String     @id @default(auto()) @map("_id") @db.ObjectId
+  content       String
+  taskId        String     @db.ObjectId
+  task          Task       @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  authorId      String     @db.ObjectId
+  author        User       @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+
+  @@index([taskId])
+  @@index([authorId])
+}
