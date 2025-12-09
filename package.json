@@ -4,12 +4,13 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "prisma generate && next build",
     "start": "next start",
     "lint": "eslint",
     "prisma:generate": "prisma generate",
     "prisma:seed": "node prisma/seed.js",
-    "db:seed": "npm run prisma:generate && npm run prisma:seed"
+    "db:seed": "npm run prisma:generate && npm run prisma:seed",
+    "postinstall": "prisma generate"
   },
   "prisma": {
     "seed": "node prisma/seed.js"
