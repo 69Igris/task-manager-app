@@ -9,12 +9,11 @@ const REFRESH_TOKEN_EXPIRY = '7d'; // 7 days
 /**
  * Sign an access token
  * @param {string} userId - User ID
- * @param {string} role - User role
  * @returns {string} Access token
  */
-export function signAccessToken(userId, role) {
+export function signAccessToken(userId) {
   return jwt.sign(
-    { userId, role },
+    { userId },
     ACCESS_TOKEN_SECRET,
     { expiresIn: ACCESS_TOKEN_EXPIRY }
   );

@@ -1,251 +1,138 @@
+import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { requireAuth, requireRole, canAccessResource, createErrorResponse, createSuccessResponse } from '@/lib/auth';
+import { requireAuth } from '@/lib/auth';
 
-/**
- * GET /api/tasks
- * List tasks with filtering options
- * Query params: projectId, status, priority, assignedTo
- */
+// GET /api/tasks - Get all tasks or filtered tasks
 export async function GET(request) {
-  const authResult = await requireAuth(request);
-  
-  if (authResult.error) {
-    return createErrorResponse(authResult.error, authResult.status);
-  }
-
-  const { user } = authResult;
-  const { searchParams } = new URL(request.url);
-  
-  const projectId = searchParams.get('projectId');
-  const status = searchParams.get('status');
-  const priority = searchParams.get('priority');
-  const assignedTo = searchParams.get('assignedTo');
-
   try {
-    // Build filter conditions
+    const authResult = await requireAuth(request);
+    if (authResult.error) {
+      return NextResponse.json({ error: authResult.error }, { status: authResult.status });
+    }
+    const user = authResult.user;
+
+    const { searchParams } = new URL(request.url);
+    const myTasks = searchParams.get('myTasks'); // Filter for current user's tasks
+    const status = searchParams.get('status');
+    const startDate = searchParams.get('startDate');
+    const endDate = searchParams.get('endDate');
+
     const where = {};
 
-    if (projectId) {
-      where.projectId = projectId;
+    // Filter by assigned user
+    if (myTasks === 'true') {
+      where.assignedTo = { has: user.id };
     }
 
+    // Filter by status
     if (status) {
       where.status = status;
     }
 
-    if (priority) {
-      where.priority = priority;
-    }
-
-    if (assignedTo) {
-      where.assignedTo = assignedTo;
-    }
-
-    // Apply role-based filtering
-    if (user.role === 'worker') {
-      // Workers only see tasks assigned to them or created by them
-      where.OR = [
-        { assignedTo: user.id },
-        { createdBy: user.id },
-      ];
-    } else if (user.role === 'manager') {
-      // Managers see tasks in their projects
-      const managerProjects = await prisma.project.findMany({
-        where: { ownerId: user.id },
-        select: { id: true },
-      });
-      
-      const projectIds = managerProjects.map(p => p.id);
-      
-      if (projectId && !projectIds.includes(projectId)) {
-        // Manager trying to access tasks from project they don't own
-        return createSuccessResponse({ tasks: [] });
-      }
-      
-      if (!projectId) {
-        where.projectId = { in: projectIds };
+    // Filter by date range (for completed tasks, use completedAt; otherwise use dueDate)
+    if (startDate || endDate) {
+      if (status === 'completed') {
+        where.completedAt = {};
+        if (startDate) where.completedAt.gte = new Date(startDate);
+        if (endDate) {
+          const endOfDay = new Date(endDate);
+          endOfDay.setHours(23, 59, 59, 999);
+          where.completedAt.lte = endOfDay;
+        }
+      } else {
+        where.dueDate = {};
+        if (startDate) where.dueDate.gte = new Date(startDate);
+        if (endDate) {
+          const endOfDay = new Date(endDate);
+          endOfDay.setHours(23, 59, 59, 999);
+          where.dueDate.lte = endOfDay;
+        }
       }
     }
-    // Admin and supervisor see all tasks
 
     const tasks = await prisma.task.findMany({
       where,
       include: {
         creator: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-            role: true,
-          },
-        },
-        project: {
-          select: {
-            id: true,
-            name: true,
-            ownerId: true,
-          },
-        },
-        _count: {
-          select: {
-            comments: true,
-          },
+          select: { id: true, name: true, email: true },
         },
       },
-      orderBy: {
-        createdAt: 'desc',
-      },
+      orderBy: { createdAt: 'desc' },
     });
 
-    // Populate assignedTo user info
-    const tasksWithAssignee = await Promise.all(
+    // Fetch assigned users for each task
+    const tasksWithAssignees = await Promise.all(
       tasks.map(async (task) => {
-        if (task.assignedTo) {
-          const assignee = await prisma.user.findUnique({
-            where: { id: task.assignedTo },
-            select: {
-              id: true,
-              name: true,
-              email: true,
-              role: true,
-            },
-          });
-          return { ...task, assignee };
-        }
-        return { ...task, assignee: null };
+        const assignedUsers = await prisma.user.findMany({
+          where: { id: { in: task.assignedTo } },
+          select: { id: true, name: true, email: true },
+        });
+        return { ...task, assignedUsers };
       })
     );
 
-    return createSuccessResponse({ tasks: tasksWithAssignee });
+    return NextResponse.json({ tasks: tasksWithAssignees });
   } catch (error) {
-    console.error('Get tasks error:', error);
-    return createErrorResponse('Failed to fetch tasks', 500);
+    console.error('Error fetching tasks:', error);
+    return NextResponse.json({ error: 'Failed to fetch tasks' }, { status: 500 });
   }
 }
 
-/**
- * POST /api/tasks
- * Create a new task
- * Required: manager role or higher
- */
+// POST /api/tasks - Create a new task
 export async function POST(request) {
-  const authResult = await requireAuth(request);
-  
-  if (authResult.error) {
-    return createErrorResponse(authResult.error, authResult.status);
-  }
-
-  const { user } = authResult;
-
-  // Check role permission - managers and above can create tasks
-  const roleCheck = requireRole(user, 'manager');
-  
-  if (!roleCheck.authorized) {
-    return createErrorResponse(roleCheck.error, roleCheck.status);
-  }
-
   try {
-    const { title, description, projectId, assignedTo, status, priority, dueDate } = await request.json();
+    const authResult = await requireAuth(request);
+    if (authResult.error) {
+      return NextResponse.json({ error: authResult.error }, { status: authResult.status });
+    }
+    const user = authResult.user;
 
-    // Validation
-    if (!title || title.trim() === '') {
-      return createErrorResponse('Task title is required', 400);
+    const body = await request.json();
+    const { equipment, area, title, description, priority, assignedTo, dueDate } = body;
+
+    // Validate required fields
+    if (!equipment || !area || !title || !assignedTo || assignedTo.length === 0) {
+      return NextResponse.json(
+        { error: 'Missing required fields' },
+        { status: 400 }
+      );
     }
 
-    if (!projectId) {
-      return createErrorResponse('Project ID is required', 400);
+    // Validate max 2 assignees
+    if (assignedTo.length > 2) {
+      return NextResponse.json(
+        { error: 'Maximum 2 people can be assigned to a task' },
+        { status: 400 }
+      );
     }
 
-    // Verify project exists
-    const project = await prisma.project.findUnique({
-      where: { id: projectId },
-    });
-
-    if (!project) {
-      return createErrorResponse('Project not found', 404);
-    }
-
-    // Check if user can create tasks in this project
-    if (!canAccessResource(user, project.ownerId, 'project')) {
-      return createErrorResponse('You do not have permission to create tasks in this project', 403);
-    }
-
-    // Validate assignedTo user exists if provided
-    if (assignedTo) {
-      const assignee = await prisma.user.findUnique({
-        where: { id: assignedTo },
-      });
-
-      if (!assignee) {
-        return createErrorResponse('Assigned user not found', 404);
-      }
-    }
-
-    // Validate status
-    const validStatuses = ['todo', 'in-progress', 'done'];
-    if (status && !validStatuses.includes(status)) {
-      return createErrorResponse('Invalid status. Must be: todo, in-progress, or done', 400);
-    }
-
-    // Validate priority
-    const validPriorities = ['low', 'medium', 'high'];
-    if (priority && !validPriorities.includes(priority)) {
-      return createErrorResponse('Invalid priority. Must be: low, medium, or high', 400);
-    }
-
-    // Create task
     const task = await prisma.task.create({
       data: {
-        title: title.trim(),
-        description: description?.trim() || null,
-        projectId,
-        createdBy: user.id,
-        assignedTo: assignedTo || null,
-        status: status || 'todo',
+        equipment,
+        area,
+        title,
+        description,
         priority: priority || 'medium',
+        assignedTo,
+        createdBy: user.id,
         dueDate: dueDate ? new Date(dueDate) : null,
       },
       include: {
         creator: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-            role: true,
-          },
-        },
-        project: {
-          select: {
-            id: true,
-            name: true,
-          },
+          select: { id: true, name: true, email: true },
         },
       },
     });
 
-    // Add assignee info if exists
-    let assignee = null;
-    if (task.assignedTo) {
-      assignee = await prisma.user.findUnique({
-        where: { id: task.assignedTo },
-        select: {
-          id: true,
-          name: true,
-          email: true,
-          role: true,
-        },
-      });
-    }
+    // Fetch assigned users
+    const assignedUsers = await prisma.user.findMany({
+      where: { id: { in: task.assignedTo } },
+      select: { id: true, name: true, email: true },
+    });
 
-    return createSuccessResponse(
-      {
-        message: 'Task created successfully',
-        task: { ...task, assignee },
-      },
-      201
-    );
+    return NextResponse.json({ ...task, assignedUsers }, { status: 201 });
   } catch (error) {
-    console.error('Create task error:', error);
-    return createErrorResponse('Failed to create task', 500);
+    console.error('Error creating task:', error);
+    return NextResponse.json({ error: 'Failed to create task' }, { status: 500 });
   }
 }

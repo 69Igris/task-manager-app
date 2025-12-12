@@ -2,17 +2,6 @@ import { verifyAccessToken } from './jwt';
 import { prisma } from './prisma';
 
 /**
- * Role hierarchy for RBAC
- * Higher index = more permissions
- */
-const ROLE_HIERARCHY = {
-  worker: 0,
-  manager: 1,
-  supervisor: 2,
-  admin: 3,
-};
-
-/**
  * Middleware to validate JWT token from Authorization header
  * Adds user object to request if valid
  * 
@@ -66,7 +55,6 @@ export async function requireAuth(request) {
         id: true,
         email: true,
         name: true,
-        role: true,
       },
     });
 
@@ -87,83 +75,6 @@ export async function requireAuth(request) {
       status: 401 
     };
   }
-}
-
-/**
- * Check if user has required role or higher
- * 
- * @param {object} user - User object from requireAuth
- * @param {string} requiredRole - Minimum required role
- * @returns {object} { authorized, error } - Authorization result
- */
-export function requireRole(user, requiredRole) {
-  if (!user) {
-    return {
-      authorized: false,
-      error: 'User not authenticated',
-      status: 401,
-    };
-  }
-
-  const userRoleLevel = ROLE_HIERARCHY[user.role];
-  const requiredRoleLevel = ROLE_HIERARCHY[requiredRole];
-
-  if (userRoleLevel === undefined) {
-    return {
-      authorized: false,
-      error: 'Invalid user role',
-      status: 403,
-    };
-  }
-
-  if (requiredRoleLevel === undefined) {
-    return {
-      authorized: false,
-      error: 'Invalid required role',
-      status: 500,
-    };
-  }
-
-  if (userRoleLevel < requiredRoleLevel) {
-    return {
-      authorized: false,
-      error: `Access denied. Required role: ${requiredRole} or higher`,
-      status: 403,
-    };
-  }
-
-  return { authorized: true };
-}
-
-/**
- * Check if user can access a specific resource
- * Admins and supervisors can access all resources
- * Managers can access their own projects and tasks
- * Workers can only access assigned tasks
- * 
- * @param {object} user - User object from requireAuth
- * @param {string} resourceOwnerId - Owner ID of the resource
- * @param {string} resourceType - Type of resource (project, task)
- * @returns {boolean} - Whether user can access the resource
- */
-export function canAccessResource(user, resourceOwnerId, resourceType = 'project') {
-  // Admins and supervisors can access everything
-  if (user.role === 'admin' || user.role === 'supervisor') {
-    return true;
-  }
-
-  // Owner can always access their own resources
-  if (user.id === resourceOwnerId) {
-    return true;
-  }
-
-  // Managers can access projects they own
-  if (user.role === 'manager' && resourceType === 'project') {
-    return user.id === resourceOwnerId;
-  }
-
-  // For other cases, deny access
-  return false;
 }
 
 /**

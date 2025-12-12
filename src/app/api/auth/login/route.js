@@ -37,7 +37,7 @@ export async function POST(request) {
     }
 
     // Generate tokens
-    const accessToken = signAccessToken(user.id, user.role);
+    const accessToken = signAccessToken(user.id);
     const { token: refreshToken, hashedToken, expiresAt } = generateRefreshToken();
 
     // Store hashed refresh token in DB
@@ -57,7 +57,6 @@ export async function POST(request) {
           id: user.id,
           email: user.email,
           name: user.name,
-          role: user.role,
         },
       },
       { status: 200 }

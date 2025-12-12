@@ -1,7 +1,7 @@
 {
   "name": "Task Manager",
   "short_name": "TaskApp",
-  "description": "Internal task management application with RBAC",
+  "description": "Equipment and task management application",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",

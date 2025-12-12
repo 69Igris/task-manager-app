@@ -39,6 +39,13 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
+  // Skip Next.js internal requests and HMR
+  if (event.request.url.includes('/_next/') || 
+      event.request.url.includes('/webpack-hmr') ||
+      event.request.url.includes('hot-update')) {
+    return;
+  }
+
   // API requests - network only
   if (event.request.url.includes('/api/')) {
     event.respondWith(fetch(event.request));
@@ -49,11 +56,13 @@ self.addEventListener('fetch', (event) => {
   event.respondWith(
     fetch(event.request)
       .then((response) => {
-        // Clone the response before caching
-        const responseClone = response.clone();
-        caches.open(CACHE_NAME).then((cache) => {
-          cache.put(event.request, responseClone);
-        });
+        // Only cache successful responses
+        if (response && response.status === 200) {
+          const responseClone = response.clone();
+          caches.open(CACHE_NAME).then((cache) => {
+            cache.put(event.request, responseClone);
+          });
+        }
         return response;
       })
       .catch(() => {

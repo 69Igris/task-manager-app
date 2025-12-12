@@ -6,7 +6,7 @@ import PWARegister from '@/components/PWARegister';
 
 export const metadata = {
   title: "Task Manager - Organize Your Work",
-  description: "Internal task management application with RBAC",
+  description: "Equipment and task management application",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,

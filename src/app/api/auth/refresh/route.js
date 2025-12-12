@@ -54,7 +54,7 @@ export async function POST(request) {
     });
 
     // Generate new tokens
-    const accessToken = signAccessToken(storedToken.user.id, storedToken.user.role);
+    const accessToken = signAccessToken(storedToken.user.id);
     const { 
       token: newRefreshToken, 
       hashedToken: newHashedToken, 
@@ -78,7 +78,6 @@ export async function POST(request) {
           id: storedToken.user.id,
           email: storedToken.user.email,
           name: storedToken.user.name,
-          role: storedToken.user.role,
         },
       },
       { status: 200 }

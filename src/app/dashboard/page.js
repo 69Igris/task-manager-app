@@ -3,221 +3,202 @@
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/components/Toast';
 import { useState, useEffect } from 'react';
-import Link from 'next/link';
 
 export default function DashboardPage() {
   const { user, fetchWithAuth } = useAuth();
   const { showToast } = useToast();
-  const [projects, setProjects] = useState([]);
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [showCreateProject, setShowCreateProject] = useState(false);
-  const [newProject, setNewProject] = useState({ name: '', description: '' });
-  const [stats, setStats] = useState({ projects: 0, tasks: 0, inProgress: 0, completed: 0 });
+  const [filter, setFilter] = useState('all'); // all, pending, in-progress, completed
 
   useEffect(() => {
-    fetchData();
+    fetchMyTasks();
   }, []);
 
-  const fetchData = async () => {
+  const fetchMyTasks = async () => {
     try {
-      const [projectsRes, tasksRes] = await Promise.all([
-        fetchWithAuth('/api/projects'),
-        fetchWithAuth('/api/tasks'),
-      ]);
-
-      const projectsData = await projectsRes.json();
-      const tasksData = await tasksRes.json();
-
-      setProjects(projectsData.projects || []);
-      setTasks(tasksData.tasks || []);
-
-      // Calculate stats
-      const taskList = tasksData.tasks || [];
-      setStats({
-        projects: projectsData.projects?.length || 0,
-        tasks: taskList.length,
-        inProgress: taskList.filter(t => t.status === 'in-progress').length,
-        completed: taskList.filter(t => t.status === 'done').length,
-      });
+      const response = await fetchWithAuth('/api/tasks?myTasks=true');
+      const data = await response.json();
+      
+      if (response.ok) {
+        setTasks(data.tasks || []);
+      } else {
+        showToast(data.error || 'Failed to fetch tasks', 'error');
+      }
     } catch (error) {
-      console.error('Error fetching data:', error);
+      console.error('Error fetching tasks:', error);
+      showToast('Failed to fetch tasks', 'error');
     } finally {
       setLoading(false);
     }
   };
 
-  const createProject = async (e) => {
-    e.preventDefault();
+  const getPendingTime = (dueDate) => {
+    if (!dueDate) return '';
+    const now = new Date();
+    const due = new Date(dueDate);
+    const diffMs = due - now;
+    const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
     
-    try {
-      const response = await fetchWithAuth('/api/projects', {
-        method: 'POST',
-        body: JSON.stringify(newProject),
-      });
+    if (diffDays < 0) return `Overdue by ${Math.abs(diffDays)}d`;
+    if (diffDays === 0) return 'Due today';
+    if (diffDays === 1) return '1 day left';
+    return `${diffDays} days left`;
+  };
 
-      if (response.ok) {
-        setNewProject({ name: '', description: '' });
-        setShowCreateProject(false);
-        fetchData();
-        showToast('Project created successfully!', 'success');
-      } else {
-        const data = await response.json();
-        showToast(data.error || 'Failed to create project', 'error');
-      }
-    } catch (error) {
-      console.error('Error creating project:', error);
-      showToast('Error creating project', 'error');
+  const getPriorityColor = (priority) => {
+    switch (priority) {
+      case 'high':
+        return 'bg-red-100 text-red-800 border-red-300';
+      case 'medium':
+        return 'bg-yellow-100 text-yellow-800 border-yellow-300';
+      case 'low':
+        return 'bg-green-100 text-green-800 border-green-300';
+      default:
+        return 'bg-gray-100 text-gray-800 border-gray-300';
     }
   };
 
-  const canCreateProject = ['admin', 'supervisor', 'manager'].includes(user?.role);
+  const getStatusColor = (status) => {
+    switch (status) {
+      case 'completed':
+        return 'bg-green-500';
+      case 'in-progress':
+        return 'bg-blue-500';
+      default:
+        return 'bg-gray-300';
+    }
+  };
+
+  const filteredTasks = tasks.filter(task => {
+    if (filter === 'all') return true;
+    return task.status === filter;
+  });
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+      <div className="flex items-center justify-center py-12">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-4 sm:space-y-6">
-      {/* Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
-        <div className="bg-white p-4 sm:p-6 rounded-lg shadow">
-          <div className="text-xs sm:text-sm font-medium text-gray-600">Total Projects</div>
-          <div className="text-2xl sm:text-3xl font-bold text-gray-900 mt-1 sm:mt-2">{stats.projects}</div>
-        </div>
-        <div className="bg-white p-4 sm:p-6 rounded-lg shadow">
-          <div className="text-xs sm:text-sm font-medium text-gray-600">Total Tasks</div>
-          <div className="text-2xl sm:text-3xl font-bold text-gray-900 mt-1 sm:mt-2">{stats.tasks}</div>
-        </div>
-        <div className="bg-white p-4 sm:p-6 rounded-lg shadow">
-          <div className="text-xs sm:text-sm font-medium text-gray-600">In Progress</div>
-          <div className="text-2xl sm:text-3xl font-bold text-blue-600 mt-1 sm:mt-2">{stats.inProgress}</div>
-        </div>
-        <div className="bg-white p-4 sm:p-6 rounded-lg shadow">
-          <div className="text-xs sm:text-sm font-medium text-gray-600">Completed</div>
-          <div className="text-2xl sm:text-3xl font-bold text-green-600 mt-1 sm:mt-2">{stats.completed}</div>
-        </div>
+    <div className="space-y-4 pb-4">
+      {/* Page Title */}
+      <div className="px-4 pt-4">
+        <h2 className="text-2xl font-bold text-gray-900">My Tasks</h2>
+        <p className="text-sm text-gray-600 mt-1">Tasks assigned to you</p>
       </div>
 
-      {/* Projects Section */}
-      <div className="bg-white rounded-lg shadow">
-        <div className="px-4 sm:px-6 py-3 sm:py-4 border-b border-gray-200 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
-          <h2 className="text-lg sm:text-xl font-semibold text-gray-900">Projects</h2>
-          {canCreateProject && (
+      {/* Filter Tabs */}
+      <div className="px-4">
+        <div className="grid grid-cols-4 gap-1.5">
+          {['all', 'pending', 'in-progress', 'completed'].map((status) => (
             <button
-              onClick={() => setShowCreateProject(!showCreateProject)}
-              className="w-full sm:w-auto px-4 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-md"
+              key={status}
+              onClick={() => setFilter(status)}
+              className={`px-2 py-2 rounded-lg text-xs font-semibold transition-all shadow-sm ${
+                filter === status
+                  ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg'
+                  : 'bg-white text-gray-700 border border-gray-300 hover:border-blue-400 hover:shadow-md'
+              }`}
             >
-              {showCreateProject ? 'Cancel' : '+ New Project'}
+              {status === 'in-progress' ? 'In Progress' : status.charAt(0).toUpperCase() + status.slice(1)}
             </button>
-          )}
-        </div>
-
-        {showCreateProject && (
-          <div className="px-4 sm:px-6 py-4 bg-gray-50 border-b">
-            <form onSubmit={createProject} className="space-y-3 sm:space-y-4">
-              <div>
-                <input
-                  type="text"
-                  placeholder="Project name"
-                  value={newProject.name}
-                  onChange={(e) => setNewProject({ ...newProject, name: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                  required
-                />
-              </div>
-              <div>
-                <textarea
-                  placeholder="Description (optional)"
-                  value={newProject.description}
-                  onChange={(e) => setNewProject({ ...newProject, description: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                  rows="2"
-                />
-              </div>
-              <button
-                type="submit"
-                className="w-full sm:w-auto px-4 py-2 text-sm font-medium text-white bg-green-600 hover:bg-green-700 rounded-md"
-              >
-                Create Project
-              </button>
-            </form>
-          </div>
-        )}
-
-        <div className="p-4 sm:p-6">
-          {projects.length === 0 ? (
-            <p className="text-center text-gray-500 py-8">No projects yet. Create your first project!</p>
-          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
-              {projects.map((project) => (
-                <Link
-                  key={project.id}
-                  href={`/dashboard/projects/${project.id}`}
-                  className="block p-4 border border-gray-200 rounded-lg hover:border-indigo-500 hover:shadow-md transition active:scale-98"
-                >
-                  <h3 className="font-semibold text-gray-900 text-base sm:text-lg">{project.name}</h3>
-                  {project.description && (
-                    <p className="text-sm text-gray-600 mt-1 line-clamp-2">{project.description}</p>
-                  )}
-                  <div className="mt-3 flex items-center justify-between text-xs text-gray-500">
-                    <span className="truncate mr-2">Owner: {project.owner?.name}</span>
-                    <span className="whitespace-nowrap">{project._count?.tasks || 0} tasks</span>
-                  </div>
-                </Link>
-              ))}
-            </div>
-          )}
+          ))}
         </div>
       </div>
 
-      {/* Recent Tasks */}
-      <div className="bg-white rounded-lg shadow">
-        <div className="px-4 sm:px-6 py-3 sm:py-4 border-b border-gray-200">
-          <h2 className="text-lg sm:text-xl font-semibold text-gray-900">My Tasks</h2>
-        </div>
-        <div className="p-4 sm:p-6">
-          {tasks.length === 0 ? (
-            <p className="text-center text-gray-500 py-8">No tasks assigned yet.</p>
-          ) : (
-            <div className="space-y-3">
-              {tasks.slice(0, 5).map((task) => (
-                <Link
-                  key={task.id}
-                  href={`/dashboard/projects/${task.projectId}`}
-                  className="block p-3 sm:p-4 border border-gray-200 rounded-lg hover:border-indigo-500 transition active:scale-98"
-                >
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-0">
-                    <div className="flex-1 min-w-0">
-                      <h4 className="font-medium text-gray-900 text-sm sm:text-base truncate">{task.title}</h4>
-                      <p className="text-xs sm:text-sm text-gray-600 mt-1 truncate">{task.project?.name}</p>
+      {/* Task List */}
+      <div className="px-4 space-y-3 pb-2">
+        {filteredTasks.length === 0 ? (
+          <div className="text-center py-16 bg-white rounded-2xl border-2 border-dashed border-gray-200">
+            <div className="text-gray-300 text-6xl mb-3">📋</div>
+            <p className="text-gray-600 font-medium">No tasks found</p>
+            <p className="text-gray-400 text-sm mt-1">Tasks will appear here when assigned</p>
+          </div>
+        ) : (
+          filteredTasks.map((task) => (
+            <div
+              key={task.id}
+              className="bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-sm hover:shadow-lg transition-all hover:scale-[1.02] active:scale-[0.98]"
+            >
+              {/* Card Header - Equipment & Area */}
+              <div className="bg-gradient-to-r from-blue-50 via-indigo-50 to-purple-50 px-4 py-4 border-b border-gray-100">
+                <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="text-xs font-bold text-gray-500 tracking-wide">EQUIPMENT</span>
+                      <div className={`w-3 h-3 rounded-full shadow-inner ${getStatusColor(task.status)}`}></div>
                     </div>
-                    <div className="flex items-center space-x-2 flex-shrink-0">
-                      <span className={`px-2 py-1 text-xs rounded whitespace-nowrap ${
-                        task.status === 'done' ? 'bg-green-100 text-green-800' :
-                        task.status === 'in-progress' ? 'bg-blue-100 text-blue-800' :
-                        'bg-gray-100 text-gray-800'
-                      }`}>
-                        {task.status}
-                      </span>
-                      <span className={`px-2 py-1 text-xs rounded whitespace-nowrap ${
-                        task.priority === 'high' ? 'bg-red-100 text-red-800' :
-                        task.priority === 'medium' ? 'bg-yellow-100 text-yellow-800' :
-                        'bg-gray-100 text-gray-800'
-                      }`}>
-                        {task.priority}
-                      </span>
+                    <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+                      <span>⚙️</span>
+                      {task.equipment || 'N/A'}
+                    </h3>
+                  </div>
+                </div>
+                {task.area && (
+                  <div className="mt-3 bg-white/50 rounded-lg px-3 py-2">
+                    <span className="text-xs font-bold text-gray-500 tracking-wide">AREA</span>
+                    <p className="text-sm font-semibold text-gray-700 mt-1 flex items-center gap-2">
+                      <span>📍</span>
+                      {task.area}
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              {/* Card Body - Task Details */}
+              <div className="px-4 py-4">
+                <div className="mb-4">
+                  <h4 className="text-base font-bold text-gray-900 mb-2">{task.title}</h4>
+                  {task.description && (
+                    <p className="text-sm text-gray-600 line-clamp-2 leading-relaxed">{task.description}</p>
+                  )}
+                </div>
+
+                {/* Assigned Users */}
+                {task.assignedUsers && task.assignedUsers.length > 0 && (
+                  <div className="flex items-center gap-2 mb-4">
+                    <span className="text-xs text-gray-500 font-medium">👥</span>
+                    <div className="flex gap-2 flex-wrap">
+                      {task.assignedUsers.map((u) => (
+                        <span
+                          key={u.id}
+                          className="text-xs bg-gradient-to-r from-blue-100 to-indigo-100 text-blue-800 px-3 py-1.5 rounded-full font-semibold shadow-sm"
+                        >
+                          {u.name}
+                        </span>
+                      ))}
                     </div>
                   </div>
-                </Link>
-              ))}
+                )}
+
+                {/* Footer - Badges */}
+                <div className="flex items-center gap-2 flex-wrap">
+                  {/* Pending Time Badge */}
+                  {task.dueDate && task.status !== 'completed' && (
+                    <span className="inline-flex items-center gap-1 text-xs px-3 py-1.5 rounded-full border-2 bg-white text-gray-700 border-gray-300 font-semibold">
+                      <span>⏱️</span>
+                      {getPendingTime(task.dueDate)}
+                    </span>
+                  )}
+                  
+                  {/* Priority Badge */}
+                  <span className={`inline-flex items-center text-xs px-3 py-1.5 rounded-full border-2 font-bold shadow-sm ${getPriorityColor(task.priority)}`}>
+                    {task.priority ? task.priority.toUpperCase() : 'NORMAL'}
+                  </span>
+
+                  {/* Status Badge */}
+                  <span className="inline-flex items-center text-xs px-3 py-1.5 rounded-full bg-gradient-to-r from-gray-100 to-gray-200 text-gray-700 font-semibold">
+                    {task.status.replace('-', ' ').toUpperCase()}
+                  </span>
+                </div>
+              </div>
             </div>
-          )}
-        </div>
+          ))
+        )}
       </div>
     </div>
   );

@@ -42,7 +42,6 @@ export async function POST(request) {
         email,
         name,
         passwordHash,
-        role: 'worker', // Default role
       },
     });
 
@@ -53,7 +52,6 @@ export async function POST(request) {
           id: user.id,
           email: user.email,
           name: user.name,
-          role: user.role,
         },
       },
       { status: 201 }

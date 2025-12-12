@@ -25,27 +25,20 @@ export default function LoginPage() {
     }
   };
 
-  const demoUsers = [
-    { email: 'admin@taskapp.com', password: 'admin123456', role: 'Admin' },
-    { email: 'supervisor@taskapp.com', password: 'supervisor123', role: 'Supervisor' },
-    { email: 'manager@taskapp.com', password: 'manager123', role: 'Manager' },
-    { email: 'worker@taskapp.com', password: 'worker123', role: 'Worker' },
-  ];
-
-  const fillDemo = (email, password) => {
-    setEmail(email);
-    setPassword(password);
-  };
-
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 p-3 sm:p-4">
-      <div className="max-w-md w-full space-y-6 sm:space-y-8">
-        <div className="text-center">
-          <h2 className="text-3xl sm:text-4xl font-bold text-gray-900">Task Manager</h2>
-          <p className="mt-2 text-sm sm:text-base text-gray-600">Sign in to your account</p>
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-600 via-indigo-600 to-purple-700 p-4">
+      <div className="max-w-md w-full">
+        {/* Logo/Header Section */}
+        <div className="text-center mb-8">
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-white rounded-2xl shadow-lg mb-4">
+            <span className="text-3xl">📋</span>
+          </div>
+          <h1 className="text-4xl font-bold text-white mb-2">Task Manager</h1>
+          <p className="text-blue-100">Manage your equipment and tasks efficiently</p>
         </div>
 
-        <div className="bg-white shadow-2xl rounded-lg p-6 sm:p-8">
+        {/* Login Card */}
+        <div className="bg-white/95 backdrop-blur-sm shadow-2xl rounded-2xl p-6 sm:p-8">
           <form onSubmit={handleSubmit} className="space-y-6">
             {error && (
               <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
@@ -104,36 +97,34 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full flex justify-center items-center gap-2 py-3 px-4 border border-transparent rounded-xl shadow-lg text-base font-semibold text-white bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transform transition-all hover:scale-[1.02] active:scale-[0.98]"
             >
-              {loading ? 'Signing in...' : 'Sign in'}
+              {loading ? (
+                <>
+                  <svg className="animate-spin h-5 w-5" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Signing in...
+                </>
+              ) : (
+                <>
+                  <span>Sign In</span>
+                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                  </svg>
+                </>
+              )}
             </button>
           </form>
 
-          <div className="mt-6">
-            <p className="text-center text-xs sm:text-sm text-gray-600">
+          <div className="mt-6 pt-6 border-t border-gray-200">
+            <p className="text-center text-sm text-gray-600">
               Don't have an account?{' '}
-              <Link href="/register" className="font-medium text-indigo-600 hover:text-indigo-500">
-                Sign up
+              <Link href="/register" className="font-semibold text-blue-600 hover:text-blue-700 transition-colors">
+                Sign up now
               </Link>
             </p>
-          </div>
-
-          <div className="mt-6 border-t pt-6">
-            <p className="text-xs text-gray-500 text-center mb-3">Demo Accounts (tap to fill)</p>
-            <div className="grid grid-cols-2 gap-2">
-              {demoUsers.map((demo) => (
-                <button
-                  key={demo.email}
-                  type="button"
-                  onClick={() => fillDemo(demo.email, demo.password)}
-                  className="text-xs px-2 sm:px-3 py-2 bg-gray-100 hover:bg-gray-200 active:bg-gray-300 rounded border border-gray-300 transition"
-                >
-                  <div className="font-semibold">{demo.role}</div>
-                  <div className="text-gray-600 truncate">{demo.email.split('@')[0]}</div>
-                </button>
-              ))}
-            </div>
           </div>
         </div>
       </div>

@@ -44,14 +44,19 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 p-3 sm:p-4">
-      <div className="max-w-md w-full space-y-6 sm:space-y-8">
-        <div className="text-center">
-          <h2 className="text-3xl sm:text-4xl font-bold text-gray-900">Create Account</h2>
-          <p className="mt-2 text-sm sm:text-base text-gray-600">Join the task management platform</p>
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-600 via-indigo-600 to-purple-700 p-4">
+      <div className="max-w-md w-full">
+        {/* Logo/Header Section */}
+        <div className="text-center mb-8">
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-white rounded-2xl shadow-lg mb-4">
+            <span className="text-3xl">📋</span>
+          </div>
+          <h1 className="text-4xl font-bold text-white mb-2">Create Account</h1>
+          <p className="text-blue-100">Join us to manage your tasks efficiently</p>
         </div>
 
-        <div className="bg-white shadow-2xl rounded-lg p-6 sm:p-8">
+        {/* Register Card */}
+        <div className="bg-white/95 backdrop-blur-sm shadow-2xl rounded-2xl p-6 sm:p-8">
           <form onSubmit={handleSubmit} className="space-y-6">
             {error && (
               <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">

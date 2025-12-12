@@ -1,10 +1,12 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { usePathname } from 'next/navigation';
 
 export default function PWARegister() {
   const [deferredPrompt, setDeferredPrompt] = useState(null);
   const [showInstallButton, setShowInstallButton] = useState(false);
+  const pathname = usePathname();
 
   useEffect(() => {
     // Register service worker
@@ -19,6 +21,23 @@ export default function PWARegister() {
             console.error('❌ Service Worker registration failed:', error);
           });
       });
+    }
+
+    // Check if user previously dismissed the prompt
+    const dismissed = localStorage.getItem('pwa-install-dismissed');
+    if (dismissed === 'true') {
+      return;
+    }
+
+    // Only show on login page
+    if (pathname !== '/login') {
+      return;
+    }
+
+    // Check if device is mobile
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    if (!isMobile) {
+      return;
     }
 
     // Listen for the beforeinstallprompt event
@@ -40,7 +59,7 @@ export default function PWARegister() {
     return () => {
       window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
     };
-  }, []);
+  }, [pathname]);
 
   const handleInstallClick = async () => {
     if (!deferredPrompt) return;
@@ -56,6 +75,12 @@ export default function PWARegister() {
     
     setDeferredPrompt(null);
     setShowInstallButton(false);
+    localStorage.setItem('pwa-install-dismissed', 'true');
+  };
+
+  const handleDismiss = () => {
+    setShowInstallButton(false);
+    localStorage.setItem('pwa-install-dismissed', 'true');
   };
 
   if (!showInstallButton) return null;
@@ -82,7 +107,7 @@ export default function PWARegister() {
                 Install
               </button>
               <button
-                onClick={() => setShowInstallButton(false)}
+                onClick={handleDismiss}
                 className="text-white px-4 py-2 rounded font-medium text-sm hover:bg-indigo-700 transition"
               >
                 Not now

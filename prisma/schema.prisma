@@ -15,14 +15,13 @@ model User {
   email         String     @unique
   name          String
   passwordHash  String
-  role          String     @default("worker") // admin, supervisor, manager, worker
   createdAt     DateTime   @default(now())
   updatedAt     DateTime   @updatedAt
   
-  projects      Project[]
-  tasks         Task[]
+  createdTasks  Task[]     @relation("CreatedTasks")
   comments      Comment[]
   refreshTokens RefreshToken[]
+  createdEvents Event[]
 }
 
 model RefreshToken {
@@ -38,41 +37,27 @@ model RefreshToken {
   @@index([expiresAt])
 }
 
-model Project {
-  id            String     @id @default(auto()) @map("_id") @db.ObjectId
-  name          String
-  description   String?
-  ownerId       String     @db.ObjectId
-  owner         User       @relation(fields: [ownerId], references: [id], onDelete: Cascade)
-  createdAt     DateTime   @default(now())
-  updatedAt     DateTime   @updatedAt
-
-  tasks         Task[]
-  members       String[]   @db.ObjectId // Array of User IDs
-
-  @@index([ownerId])
-}
-
 model Task {
   id            String     @id @default(auto()) @map("_id") @db.ObjectId
-  title         String
-  description   String?
-  status        String     @default("todo") // todo, in-progress, done
+  equipment     String     // e.g., "L36"
+  area          String     // e.g., "Rack bar-01"
+  title         String     // Task description
+  description   String?    // Additional details
+  status        String     @default("pending") // pending, in-progress, completed
   priority      String     @default("medium") // low, medium, high
-  projectId     String     @db.ObjectId
-  project       Project    @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  assignedTo    String?    @db.ObjectId // User ID
+  assignedTo    String[]   @db.ObjectId // Array of User IDs (max 2)
   createdBy     String     @db.ObjectId
-  creator       User       @relation(fields: [createdBy], references: [id], onDelete: Cascade)
+  creator       User       @relation("CreatedTasks", fields: [createdBy], references: [id], onDelete: Cascade)
   dueDate       DateTime?
+  completedAt   DateTime?
   createdAt     DateTime   @default(now())
   updatedAt     DateTime   @updatedAt
 
   comments      Comment[]
 
-  @@index([projectId])
   @@index([createdBy])
-  @@index([assignedTo])
+  @@index([status])
+  @@index([createdAt])
 }
 
 model Comment {
@@ -87,4 +72,18 @@ model Comment {
 
   @@index([taskId])
   @@index([authorId])
+}
+
+model Event {
+  id            String     @id @default(auto()) @map("_id") @db.ObjectId
+  title         String     // e.g., "Audit", "Safety Meeting"
+  description   String?
+  eventDate     DateTime   // When the event will occur
+  createdBy     String     @db.ObjectId
+  creator       User       @relation(fields: [createdBy], references: [id], onDelete: Cascade)
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+
+  @@index([eventDate])
+  @@index([createdBy])
 }

@@ -1,86 +1,156 @@
-import bcrypt from 'bcryptjs';
-import { PrismaClient } from '@prisma/client';
+const { PrismaClient } = require('@prisma/client');
+const bcrypt = require('bcryptjs');
 
 const prisma = new PrismaClient();
 
 async function main() {
-  console.log('Starting seed...');
+  console.log('🌱 Seeding database...');
 
-  // Create admin user
-  const adminPassword = await bcrypt.hash('admin123456', 10);
-  
-  const admin = await prisma.user.upsert({
-    where: { email: 'admin@taskapp.com' },
-    update: {},
-    create: {
-      email: 'admin@taskapp.com',
-      name: 'Admin User',
-      passwordHash: adminPassword,
-      role: 'admin',
+  // Clear existing data
+  await prisma.event.deleteMany();
+  await prisma.comment.deleteMany();
+  await prisma.task.deleteMany();
+  await prisma.refreshToken.deleteMany();
+  await prisma.user.deleteMany();
+
+  // Create users
+  const hashedPassword = await bcrypt.hash('Test123!', 10);
+
+  const maninder = await prisma.user.create({
+    data: {
+      email: 'maninder@company.com',
+      name: 'Maninder',
+      passwordHash: hashedPassword,
     },
   });
 
-  console.log('Created admin user:', { id: admin.id, email: admin.email, role: admin.role });
-
-  // Create sample supervisor
-  const supervisorPassword = await bcrypt.hash('supervisor123', 10);
-  
-  const supervisor = await prisma.user.upsert({
-    where: { email: 'supervisor@taskapp.com' },
-    update: {},
-    create: {
-      email: 'supervisor@taskapp.com',
-      name: 'Supervisor User',
-      passwordHash: supervisorPassword,
-      role: 'supervisor',
+  const john = await prisma.user.create({
+    data: {
+      email: 'john@company.com',
+      name: 'John Doe',
+      passwordHash: hashedPassword,
     },
   });
 
-  console.log('Created supervisor user:', { id: supervisor.id, email: supervisor.email, role: supervisor.role });
-
-  // Create sample manager
-  const managerPassword = await bcrypt.hash('manager123', 10);
-  
-  const manager = await prisma.user.upsert({
-    where: { email: 'manager@taskapp.com' },
-    update: {},
-    create: {
-      email: 'manager@taskapp.com',
-      name: 'Manager User',
-      passwordHash: managerPassword,
-      role: 'manager',
+  const sarah = await prisma.user.create({
+    data: {
+      email: 'sarah@company.com',
+      name: 'Sarah Smith',
+      passwordHash: hashedPassword,
     },
   });
 
-  console.log('Created manager user:', { id: manager.id, email: manager.email, role: manager.role });
+  console.log('✅ Created users');
 
-  // Create sample worker
-  const workerPassword = await bcrypt.hash('worker123', 10);
-  
-  const worker = await prisma.user.upsert({
-    where: { email: 'worker@taskapp.com' },
-    update: {},
-    create: {
-      email: 'worker@taskapp.com',
-      name: 'Worker User',
-      passwordHash: workerPassword,
-      role: 'worker',
+  // Create tasks (matching the screenshot example)
+  await prisma.task.create({
+    data: {
+      equipment: 'L36',
+      area: 'RACKBAR-1',
+      title: 'Machine main door not working',
+      status: 'pending',
+      priority: 'high',
+      assignedTo: [maninder.id],
+      createdBy: john.id,
+      createdAt: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000), // 10 days ago
     },
   });
 
-  console.log('Created worker user:', { id: worker.id, email: worker.email, role: worker.role });
+  await prisma.task.create({
+    data: {
+      equipment: 'L28',
+      area: 'PINION-01',
+      title: 'Induction hardning machine not work',
+      status: 'pending',
+      priority: 'high',
+      assignedTo: [maninder.id, john.id], // Assigned to 2 people
+      createdBy: john.id,
+      createdAt: new Date(Date.now() - 6 * 24 * 60 * 60 * 1000), // 6 days ago
+    },
+  });
 
-  console.log('\n✅ Seed completed successfully!');
-  console.log('\nTest credentials:');
-  console.log('Admin: admin@taskapp.com / admin123456');
-  console.log('Supervisor: supervisor@taskapp.com / supervisor123');
-  console.log('Manager: manager@taskapp.com / manager123');
-  console.log('Worker: worker@taskapp.com / worker123');
+  await prisma.task.create({
+    data: {
+      equipment: 'N11',
+      area: 'RACKBAR-5',
+      title: 'Part present sensor not working',
+      status: 'pending',
+      priority: 'medium',
+      assignedTo: [sarah.id],
+      createdBy: maninder.id,
+      createdAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000), // 3 days ago
+    },
+  });
+
+  await prisma.task.create({
+    data: {
+      equipment: 'N01',
+      area: 'Laser Marking',
+      title: 'Door damage mail send to maker san',
+      status: 'in-progress',
+      priority: 'low',
+      assignedTo: [john.id],
+      createdBy: sarah.id,
+      createdAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000), // 1 day ago
+    },
+  });
+
+  await prisma.task.create({
+    data: {
+      equipment: 'L15',
+      area: 'Assembly Line',
+      title: 'Conveyor belt alignment issue',
+      status: 'completed',
+      priority: 'medium',
+      assignedTo: [john.id],
+      createdBy: maninder.id,
+      completedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
+      createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000),
+    },
+  });
+
+  console.log('✅ Created tasks');
+
+  // Create upcoming events
+  await prisma.event.create({
+    data: {
+      title: 'Annual Safety Audit',
+      description: 'Yearly safety compliance audit by external auditors',
+      eventDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days from now
+      createdBy: maninder.id,
+    },
+  });
+
+  await prisma.event.create({
+    data: {
+      title: 'Equipment Maintenance Shutdown',
+      description: 'Scheduled maintenance for all production equipment',
+      eventDate: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000), // 14 days from now
+      createdBy: john.id,
+    },
+  });
+
+  await prisma.event.create({
+    data: {
+      title: 'Team Meeting',
+      description: 'Monthly production team meeting',
+      eventDate: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000), // 3 days from now
+      createdBy: maninder.id,
+    },
+  });
+
+  console.log('✅ Created events');
+
+  console.log('\n🎉 Seeding completed successfully!');
+  console.log('\n📧 Test credentials:');
+  console.log('Email: maninder@company.com | Password: Test123!');
+  console.log('Email: john@company.com | Password: Test123!');
+  console.log('Email: sarah@company.com | Password: Test123!');
 }
 
 main()
   .catch((e) => {
-    console.error('Seed error:', e);
+    console.error('❌ Error seeding database:', e);
     process.exit(1);
   })
   .finally(async () => {
