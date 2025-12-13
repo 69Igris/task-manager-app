@@ -116,10 +116,10 @@ export default function ExportPage() {
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 pb-4">
       {/* Page Title */}
-      <div className="px-4 pt-2">
-        <h2 className="text-xl font-semibold text-gray-900">Export Tasks</h2>
+      <div className="px-4 pt-4">
+        <h2 className="text-2xl font-bold text-gray-900">Export Tasks</h2>
         <p className="text-sm text-gray-600 mt-1">
           Download completed tasks as CSV file
         </p>
@@ -127,17 +127,17 @@ export default function ExportPage() {
 
       {/* Export Form */}
       <div className="px-4">
-        <div className="bg-white rounded-lg border border-gray-200 p-6 shadow-sm">
+        <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm">
           <div className="space-y-4">
             {/* Instructions */}
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-              <div className="flex gap-2">
-                <span className="text-blue-600 text-xl">ℹ️</span>
+            <div className="bg-gradient-to-r from-blue-50 via-indigo-50 to-purple-50 border-2 border-blue-200 rounded-xl p-4">
+              <div className="flex gap-3">
+                <span className="text-blue-600 text-2xl">ℹ️</span>
                 <div>
-                  <h3 className="text-sm font-semibold text-blue-900 mb-1">
+                  <h3 className="text-sm font-bold text-gray-900 mb-1">
                     How to export
                   </h3>
-                  <p className="text-xs text-blue-800">
+                  <p className="text-xs text-gray-600 leading-relaxed">
                     Select a date range to export all completed tasks within that period.
                     The file will be downloaded as a CSV file which can be opened in Excel.
                   </p>
@@ -147,12 +147,12 @@ export default function ExportPage() {
 
             {/* Date Range Selection */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-700 mb-3">
                 Select Date Range
               </label>
               <div className="grid grid-cols-1 gap-3">
                 <div>
-                  <label className="text-xs text-gray-600 mb-1 block">From</label>
+                  <label className="text-xs font-medium text-gray-600 mb-1.5 block">From</label>
                   <input
                     type="date"
                     value={dateRange.start}
@@ -161,7 +161,7 @@ export default function ExportPage() {
                   />
                 </div>
                 <div>
-                  <label className="text-xs text-gray-600 mb-1 block">To</label>
+                  <label className="text-xs font-medium text-gray-600 mb-1.5 block">To</label>
                   <input
                     type="date"
                     value={dateRange.end}
@@ -176,19 +176,19 @@ export default function ExportPage() {
             <button
               onClick={handleExport}
               disabled={loading || !dateRange.start || !dateRange.end}
-              className={`w-full py-3 px-4 rounded-lg font-medium text-white transition-colors ${
+              className={`w-full py-4 px-4 rounded-xl font-bold text-white transition-all shadow-lg ${
                 loading || !dateRange.start || !dateRange.end
-                  ? 'bg-gray-300 cursor-not-allowed'
-                  : 'bg-blue-600 hover:bg-blue-700 active:bg-blue-800'
+                  ? 'bg-gray-400 cursor-not-allowed'
+                  : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 hover:shadow-xl active:scale-95'
               }`}
             >
               {loading ? (
                 <span className="flex items-center justify-center gap-2">
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
                   Exporting...
                 </span>
               ) : (
-                <span className="flex items-center justify-center gap-2">
+                <span className="flex items-center justify-center gap-2 text-base">
                   <span>📥</span>
                   Export to CSV
                 </span>
@@ -196,16 +196,32 @@ export default function ExportPage() {
             </button>
 
             {/* Info Box */}
-            <div className="pt-4 border-t border-gray-200">
-              <h4 className="text-xs font-semibold text-gray-700 mb-2">
+            <div className="pt-4 border-t-2 border-gray-200">
+              <h4 className="text-sm font-bold text-gray-900 mb-3 flex items-center gap-2">
+                <span>📋</span>
                 What's included in the export?
               </h4>
-              <ul className="text-xs text-gray-600 space-y-1">
-                <li>• Equipment and Area information</li>
-                <li>• Task title and description</li>
-                <li>• Priority and status</li>
-                <li>• Assigned users and creator</li>
-                <li>• Due date and completion date</li>
+              <ul className="text-sm text-gray-600 space-y-2">
+                <li className="flex items-center gap-2">
+                  <span className="w-1.5 h-1.5 bg-blue-500 rounded-full"></span>
+                  Equipment and Area information
+                </li>
+                <li className="flex items-center gap-2">
+                  <span className="w-1.5 h-1.5 bg-blue-500 rounded-full"></span>
+                  Task title and description
+                </li>
+                <li className="flex items-center gap-2">
+                  <span className="w-1.5 h-1.5 bg-blue-500 rounded-full"></span>
+                  Priority and status
+                </li>
+                <li className="flex items-center gap-2">
+                  <span className="w-1.5 h-1.5 bg-blue-500 rounded-full"></span>
+                  Assigned users and creator
+                </li>
+                <li className="flex items-center gap-2">
+                  <span className="w-1.5 h-1.5 bg-blue-500 rounded-full"></span>
+                  Due date and completion date
+                </li>
               </ul>
             </div>
           </div>
@@ -213,12 +229,15 @@ export default function ExportPage() {
       </div>
 
       {/* Sample Preview */}
-      <div className="px-4">
-        <div className="bg-gray-50 rounded-lg border border-gray-200 p-4">
-          <h4 className="text-xs font-semibold text-gray-700 mb-2">CSV Format Preview</h4>
-          <div className="bg-white rounded border border-gray-300 p-3 overflow-x-auto">
+      <div className="px-4 pb-2">
+        <div className="bg-gradient-to-r from-gray-50 to-gray-100 rounded-2xl border border-gray-200 p-4 shadow-sm">
+          <h4 className="text-sm font-bold text-gray-900 mb-3 flex items-center gap-2">
+            <span>👀</span>
+            CSV Format Preview
+          </h4>
+          <div className="bg-white rounded-lg border border-gray-300 p-3 overflow-x-auto">
             <pre className="text-xs text-gray-600 font-mono">
-              Equipment,Area,Title,Description,Priority,...
+Equipment,Area,Title,Description,Priority,...
             </pre>
           </div>
         </div>

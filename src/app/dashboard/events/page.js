@@ -84,28 +84,28 @@ export default function EventsPage() {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 pb-4">
       {/* Page Title */}
-      <div className="px-4 pt-2">
-        <h2 className="text-xl font-semibold text-gray-900">Upcoming Events</h2>
+      <div className="px-4 pt-4">
+        <h2 className="text-2xl font-bold text-gray-900">Upcoming Events</h2>
         <p className="text-sm text-gray-600 mt-1">Company events and activities</p>
       </div>
 
       {/* Date Filter */}
       <div className="px-4">
-        <div className="bg-white rounded-lg border border-gray-200 p-3">
+        <div className="bg-white rounded-xl border border-gray-200 p-3 shadow-sm">
           <label className="text-xs font-medium text-gray-700 mb-2 block">Filter by Event Date</label>
           <input
             type="date"
             value={selectedDate}
             onChange={(e) => setSelectedDate(e.target.value)}
-            className="w-full text-sm px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className="w-full text-sm px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             placeholder="Select date"
           />
           {selectedDate && (
             <button
               onClick={() => setSelectedDate('')}
-              className="mt-2 text-xs text-blue-600 hover:text-blue-700"
+              className="mt-2 text-xs text-blue-600 hover:text-blue-700 font-medium"
             >
               Clear date
             </button>
@@ -114,12 +114,12 @@ export default function EventsPage() {
       </div>
 
       {/* Events List */}
-      <div className="px-4 space-y-3">
+      <div className="px-4 space-y-3 pb-2">
         {events.length === 0 ? (
-          <div className="text-center py-12">
-            <div className="text-gray-400 text-4xl mb-2">📅</div>
-            <p className="text-gray-600">No events found</p>
-            <p className="text-sm text-gray-500 mt-1">Check back later for upcoming activities</p>
+          <div className="text-center py-16 bg-white rounded-2xl border-2 border-dashed border-gray-200">
+            <div className="text-gray-300 text-6xl mb-3">📅</div>
+            <p className="text-gray-600 font-medium">No events found</p>
+            <p className="text-gray-400 text-sm mt-1">Check back later for upcoming activities</p>
           </div>
         ) : (
           events.map((event) => {
@@ -131,33 +131,42 @@ export default function EventsPage() {
             return (
               <div
                 key={event.id}
-                className={`bg-white rounded-lg border overflow-hidden shadow-sm ${
+                className={`bg-white rounded-2xl border overflow-hidden shadow-sm hover:shadow-lg transition-all hover:scale-[1.02] active:scale-[0.98] ${
                   isToday
                     ? 'border-blue-500 ring-2 ring-blue-200'
                     : isSoon
-                    ? 'border-yellow-400'
+                    ? 'border-yellow-400 ring-1 ring-yellow-200'
                     : isPast
                     ? 'border-gray-300 opacity-75'
                     : 'border-gray-200'
                 }`}
               >
-                <div className="p-4">
-                  {/* Event Header */}
-                  <div className="flex items-start justify-between mb-3">
+                {/* Event Header */}
+                <div className={`px-4 py-4 border-b ${
+                  isToday
+                    ? 'bg-gradient-to-r from-blue-50 via-indigo-50 to-blue-50 border-blue-100'
+                    : isSoon
+                    ? 'bg-gradient-to-r from-yellow-50 via-amber-50 to-yellow-50 border-yellow-100'
+                    : isPast
+                    ? 'bg-gray-50 border-gray-100'
+                    : 'bg-gradient-to-r from-green-50 via-emerald-50 to-green-50 border-green-100'
+                }`}>
+                  <div className="flex items-start justify-between mb-2">
                     <div className="flex-1">
-                      <h3 className="text-base font-semibold text-gray-900">
+                      <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+                        <span>📅</span>
                         {event.title}
                       </h3>
                       {timeInfo && (
                         <span
-                          className={`inline-block mt-1 text-xs px-2 py-1 rounded font-medium ${
+                          className={`inline-block mt-2 text-xs px-3 py-1.5 rounded-full font-bold shadow-sm ${
                             isToday
-                              ? 'bg-blue-100 text-blue-800'
+                              ? 'bg-blue-500 text-white'
                               : isSoon
-                              ? 'bg-yellow-100 text-yellow-800'
+                              ? 'bg-yellow-500 text-white'
                               : isPast
-                              ? 'bg-gray-100 text-gray-600'
-                              : 'bg-green-100 text-green-800'
+                              ? 'bg-gray-400 text-white'
+                              : 'bg-green-500 text-white'
                           }`}
                         >
                           {timeInfo}
@@ -165,21 +174,25 @@ export default function EventsPage() {
                       )}
                     </div>
                   </div>
+                </div>
 
+                {/* Event Body */}
+                <div className="px-4 py-4">
                   {/* Event Description */}
                   {event.description && (
-                    <p className="text-sm text-gray-600 mb-3">{event.description}</p>
+                    <p className="text-sm text-gray-600 mb-4 leading-relaxed">{event.description}</p>
                   )}
 
                   {/* Event Footer */}
-                  <div className="flex items-center justify-between text-xs text-gray-500">
-                    <div className="flex items-center gap-1">
-                      <span>📅</span>
-                      <span>{formattedDate}</span>
+                  <div className="flex items-center justify-between text-xs">
+                    <div className="flex items-center gap-2 bg-gray-50 px-3 py-2 rounded-lg">
+                      <span className="text-base">🗓️</span>
+                      <span className="font-semibold text-gray-700">{formattedDate}</span>
                     </div>
                     {event.creator && (
-                      <div className="flex items-center gap-1">
-                        <span>Created by {event.creator.name}</span>
+                      <div className="flex items-center gap-2 text-gray-500">
+                        <span className="text-base">👤</span>
+                        <span className="font-medium">{event.creator.name}</span>
                       </div>
                     )}
                   </div>

@@ -2,6 +2,7 @@
 
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/components/Toast';
+import TaskDetailsModal from '@/components/TaskDetailsModal';
 import { useState, useEffect } from 'react';
 
 export default function TeamTasksPage() {
@@ -11,6 +12,7 @@ export default function TeamTasksPage() {
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('all');
   const [selectedDate, setSelectedDate] = useState('');
+  const [selectedTask, setSelectedTask] = useState(null);
 
   useEffect(() => {
     fetchAllTasks();
@@ -47,6 +49,15 @@ export default function TeamTasksPage() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleTaskUpdate = (updatedTask) => {
+    setTasks(tasks.map(t => t.id === updatedTask.id ? updatedTask : t));
+  };
+
+  const handleTaskDelete = (deletedTaskId) => {
+    setTasks(tasks.filter(t => t.id !== deletedTaskId));
+    showToast('Task deleted successfully', 'success');
   };
 
   const getPendingTime = (dueDate) => {
@@ -99,10 +110,10 @@ export default function TeamTasksPage() {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 pb-4">
       {/* Page Title */}
-      <div className="px-4 pt-2">
-        <h2 className="text-xl font-semibold text-gray-900">Team Tasks</h2>
+      <div className="px-4 pt-4">
+        <h2 className="text-2xl font-bold text-gray-900">Team Tasks</h2>
         <p className="text-sm text-gray-600 mt-1">All tasks in the system</p>
       </div>
 
@@ -114,10 +125,10 @@ export default function TeamTasksPage() {
             <button
               key={status}
               onClick={() => setFilter(status)}
-              className={`px-2 py-2 rounded-lg text-xs font-semibold transition-colors ${
+              className={`px-2 py-2 rounded-lg text-xs font-semibold transition-all shadow-sm ${
                 filter === status
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
+                  ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg'
+                  : 'bg-white text-gray-700 border border-gray-300 hover:border-blue-400 hover:shadow-md'
               }`}
             >
               {status === 'in-progress' ? 'In Progress' : status.charAt(0).toUpperCase() + status.slice(1)}
@@ -126,19 +137,19 @@ export default function TeamTasksPage() {
         </div>
 
         {/* Date Filter */}
-        <div className="bg-white rounded-lg border border-gray-200 p-3">
+        <div className="bg-white rounded-xl border border-gray-200 p-3 shadow-sm">
           <label className="text-xs font-medium text-gray-700 mb-2 block">Filter by Due Date</label>
           <input
             type="date"
             value={selectedDate}
             onChange={(e) => setSelectedDate(e.target.value)}
-            className="w-full text-sm px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className="w-full text-sm px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             placeholder="Select date"
           />
           {selectedDate && (
             <button
               onClick={() => setSelectedDate('')}
-              className="mt-2 text-xs text-blue-600 hover:text-blue-700"
+              className="mt-2 text-xs text-blue-600 hover:text-blue-700 font-medium"
             >
               Clear date
             </button>
@@ -147,57 +158,63 @@ export default function TeamTasksPage() {
       </div>
 
       {/* Task List */}
-      <div className="px-4 space-y-3">
+      <div className="px-4 space-y-3 pb-2">
         {tasks.length === 0 ? (
-          <div className="text-center py-12">
-            <div className="text-gray-400 text-4xl mb-2">📋</div>
-            <p className="text-gray-600">No tasks found</p>
+          <div className="text-center py-16 bg-white rounded-2xl border-2 border-dashed border-gray-200">
+            <div className="text-gray-300 text-6xl mb-3">📋</div>
+            <p className="text-gray-600 font-medium">No tasks found</p>
+            <p className="text-gray-400 text-sm mt-1">Try adjusting your filters</p>
           </div>
         ) : (
           tasks.map((task) => (
             <div
               key={task.id}
-              className="bg-white rounded-lg border border-gray-200 overflow-hidden shadow-sm"
+              onClick={() => setSelectedTask(task)}
+              className="bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-sm hover:shadow-lg transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
             >
-              {/* Card Header */}
-              <div className="bg-gradient-to-r from-blue-50 to-indigo-50 px-4 py-3 border-b border-gray-200">
+              {/* Card Header - Equipment & Area */}
+              <div className="bg-gradient-to-r from-blue-50 via-indigo-50 to-purple-50 px-4 py-4 border-b border-gray-100">
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs font-medium text-gray-500">EQUIPMENT</span>
-                      <div className={`w-3 h-3 rounded-full ${getStatusColor(task.status)}`}></div>
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="text-xs font-bold text-gray-500 tracking-wide">EQUIPMENT</span>
+                      <div className={`w-3 h-3 rounded-full shadow-inner ${getStatusColor(task.status)}`}></div>
                     </div>
-                    <h3 className="text-base font-semibold text-gray-900 mt-1">
+                    <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+                      <span>⚙️</span>
                       {task.equipment || 'N/A'}
                     </h3>
                   </div>
                 </div>
                 {task.area && (
-                  <div className="mt-2">
-                    <span className="text-xs font-medium text-gray-500">AREA</span>
-                    <p className="text-sm text-gray-700 mt-1">{task.area}</p>
+                  <div className="mt-3 bg-white/50 rounded-lg px-3 py-2">
+                    <span className="text-xs font-bold text-gray-500 tracking-wide">AREA</span>
+                    <p className="text-sm font-semibold text-gray-700 mt-1 flex items-center gap-2">
+                      <span>📍</span>
+                      {task.area}
+                    </p>
                   </div>
                 )}
               </div>
 
-              {/* Card Body */}
-              <div className="px-4 py-3">
-                <div className="mb-3">
-                  <h4 className="text-sm font-semibold text-gray-900 mb-1">{task.title}</h4>
+              {/* Card Body - Task Details */}
+              <div className="px-4 py-4">
+                <div className="mb-4">
+                  <h4 className="text-base font-bold text-gray-900 mb-2">{task.title}</h4>
                   {task.description && (
-                    <p className="text-sm text-gray-600 line-clamp-2">{task.description}</p>
+                    <p className="text-sm text-gray-600 line-clamp-2 leading-relaxed">{task.description}</p>
                   )}
                 </div>
 
                 {/* Assigned Users */}
                 {task.assignedUsers && task.assignedUsers.length > 0 && (
-                  <div className="flex items-center gap-2 mb-3">
-                    <span className="text-xs text-gray-500">Assigned to:</span>
-                    <div className="flex gap-1">
+                  <div className="flex items-center gap-2 mb-4">
+                    <span className="text-xs text-gray-500 font-medium">👥</span>
+                    <div className="flex gap-2 flex-wrap">
                       {task.assignedUsers.map((u) => (
                         <span
                           key={u.id}
-                          className="text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded"
+                          className="text-xs bg-gradient-to-r from-blue-100 to-indigo-100 text-blue-800 px-3 py-1.5 rounded-full font-semibold shadow-sm"
                         >
                           {u.name}
                         </span>
@@ -206,17 +223,30 @@ export default function TeamTasksPage() {
                   </div>
                 )}
 
-                {/* Footer Badges */}
+                {/* Footer - Badges */}
                 <div className="flex items-center gap-2 flex-wrap">
-                  {task.dueDate && task.status !== 'completed' && (
-                    <span className="text-xs px-2 py-1 rounded border bg-white text-gray-700 border-gray-300">
-                      ⏱️ {getPendingTime(task.dueDate)}
+                  {/* Due Date Badge - Always show if exists */}
+                  {task.dueDate && (
+                    <span className={`inline-flex items-center gap-1 text-xs px-3 py-1.5 rounded-full border-2 font-semibold ${
+                      new Date(task.dueDate) < new Date() && task.status !== 'completed'
+                        ? 'bg-red-50 border-red-300 text-red-800'
+                        : task.status === 'completed'
+                        ? 'bg-green-50 border-green-300 text-green-800'
+                        : 'bg-blue-50 border-blue-300 text-blue-800'
+                    }`}>
+                      <span>📅</span>
+                      {new Date(task.dueDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                      {new Date(task.dueDate) < new Date() && task.status !== 'completed' && ' - OVERDUE'}
                     </span>
                   )}
-                  <span className={`text-xs px-2 py-1 rounded border font-medium ${getPriorityColor(task.priority)}`}>
+                  
+                  {/* Priority Badge */}
+                  <span className={`inline-flex items-center text-xs px-3 py-1.5 rounded-full border-2 font-bold shadow-sm ${getPriorityColor(task.priority)}`}>
                     {task.priority ? task.priority.toUpperCase() : 'NORMAL'}
                   </span>
-                  <span className="text-xs px-2 py-1 rounded bg-gray-100 text-gray-700">
+
+                  {/* Status Badge */}
+                  <span className="inline-flex items-center text-xs px-3 py-1.5 rounded-full bg-gradient-to-r from-gray-100 to-gray-200 text-gray-700 font-semibold">
                     {task.status.replace('-', ' ').toUpperCase()}
                   </span>
                 </div>
@@ -225,6 +255,16 @@ export default function TeamTasksPage() {
           ))
         )}
       </div>
+
+      {/* Task Details Modal */}
+      {selectedTask && (
+        <TaskDetailsModal
+          task={selectedTask}
+          onClose={() => setSelectedTask(null)}
+          onUpdate={handleTaskUpdate}
+          onDelete={handleTaskDelete}
+        />
+      )}
     </div>
   );
 }

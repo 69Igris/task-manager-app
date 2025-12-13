@@ -2,6 +2,7 @@
 
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/components/Toast';
+import TaskDetailsModal from '@/components/TaskDetailsModal';
 import { useState, useEffect } from 'react';
 
 export default function DashboardPage() {
@@ -10,6 +11,7 @@ export default function DashboardPage() {
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('all'); // all, pending, in-progress, completed
+  const [selectedTask, setSelectedTask] = useState(null);
 
   useEffect(() => {
     fetchMyTasks();
@@ -31,6 +33,15 @@ export default function DashboardPage() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleTaskUpdate = (updatedTask) => {
+    setTasks(tasks.map(t => t.id === updatedTask.id ? updatedTask : t));
+  };
+
+  const handleTaskDelete = (deletedTaskId) => {
+    setTasks(tasks.filter(t => t.id !== deletedTaskId));
+    showToast('Task deleted successfully', 'success');
   };
 
   const getPendingTime = (dueDate) => {
@@ -122,7 +133,8 @@ export default function DashboardPage() {
           filteredTasks.map((task) => (
             <div
               key={task.id}
-              className="bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-sm hover:shadow-lg transition-all hover:scale-[1.02] active:scale-[0.98]"
+              onClick={() => setSelectedTask(task)}
+              className="bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-sm hover:shadow-lg transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
             >
               {/* Card Header - Equipment & Area */}
               <div className="bg-gradient-to-r from-blue-50 via-indigo-50 to-purple-50 px-4 py-4 border-b border-gray-100">
@@ -177,11 +189,18 @@ export default function DashboardPage() {
 
                 {/* Footer - Badges */}
                 <div className="flex items-center gap-2 flex-wrap">
-                  {/* Pending Time Badge */}
-                  {task.dueDate && task.status !== 'completed' && (
-                    <span className="inline-flex items-center gap-1 text-xs px-3 py-1.5 rounded-full border-2 bg-white text-gray-700 border-gray-300 font-semibold">
-                      <span>⏱️</span>
-                      {getPendingTime(task.dueDate)}
+                  {/* Due Date Badge - Always show if exists */}
+                  {task.dueDate && (
+                    <span className={`inline-flex items-center gap-1 text-xs px-3 py-1.5 rounded-full border-2 font-semibold ${
+                      new Date(task.dueDate) < new Date() && task.status !== 'completed'
+                        ? 'bg-red-50 border-red-300 text-red-800'
+                        : task.status === 'completed'
+                        ? 'bg-green-50 border-green-300 text-green-800'
+                        : 'bg-blue-50 border-blue-300 text-blue-800'
+                    }`}>
+                      <span>📅</span>
+                      {new Date(task.dueDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                      {new Date(task.dueDate) < new Date() && task.status !== 'completed' && ' - OVERDUE'}
                     </span>
                   )}
                   
@@ -200,6 +219,16 @@ export default function DashboardPage() {
           ))
         )}
       </div>
+
+      {/* Task Details Modal */}
+      {selectedTask && (
+        <TaskDetailsModal
+          task={selectedTask}
+          onClose={() => setSelectedTask(null)}
+          onUpdate={handleTaskUpdate}
+          onDelete={handleTaskDelete}
+        />
+      )}
     </div>
   );
 }
