@@ -10,7 +10,7 @@ export default function TeamTasksPage() {
   const { showToast } = useToast();
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState('all');
+  const [filter, setFilter] = useState('all'); // all, pending, in-progress, completed, overdue
   const [selectedDate, setSelectedDate] = useState('');
   const [selectedTask, setSelectedTask] = useState(null);
 
@@ -23,7 +23,7 @@ export default function TeamTasksPage() {
       let url = '/api/tasks';
       const params = new URLSearchParams();
       
-      if (filter !== 'all') {
+      if (filter !== 'all' && filter !== 'overdue') {
         params.append('status', filter);
       }
       if (selectedDate) {
@@ -101,6 +101,14 @@ export default function TeamTasksPage() {
     fetchAllTasks();
   }, [filter, selectedDate]);
 
+  const displayedTasks = tasks.filter((task) => {
+    if (filter === 'all') return true;
+    if (filter === 'overdue') {
+      return task.dueDate && new Date(task.dueDate) < new Date() && task.status !== 'completed';
+    }
+    return task.status === filter;
+  });
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -120,8 +128,8 @@ export default function TeamTasksPage() {
       {/* Filters */}
       <div className="px-4 space-y-3">
         {/* Status Filter */}
-        <div className="grid grid-cols-4 gap-1.5">
-          {['all', 'pending', 'in-progress', 'completed'].map((status) => (
+        <div className="grid grid-cols-5 gap-1.5">
+          {['all', 'pending', 'in-progress', 'completed', 'overdue'].map((status) => (
             <button
               key={status}
               onClick={() => setFilter(status)}
@@ -159,14 +167,14 @@ export default function TeamTasksPage() {
 
       {/* Task List */}
       <div className="px-4 space-y-3 pb-2">
-        {tasks.length === 0 ? (
+        {displayedTasks.length === 0 ? (
           <div className="text-center py-16 bg-white rounded-2xl border-2 border-dashed border-gray-200">
             <div className="text-gray-300 text-6xl mb-3">📋</div>
             <p className="text-gray-600 font-medium">No tasks found</p>
             <p className="text-gray-400 text-sm mt-1">Try adjusting your filters</p>
           </div>
         ) : (
-          tasks.map((task) => (
+          displayedTasks.map((task) => (
             <div
               key={task.id}
               onClick={() => setSelectedTask(task)}

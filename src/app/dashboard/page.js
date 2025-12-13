@@ -10,7 +10,7 @@ export default function DashboardPage() {
   const { showToast } = useToast();
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState('all'); // all, pending, in-progress, completed
+  const [filter, setFilter] = useState('all'); // all, pending, in-progress, completed, overdue
   const [selectedTask, setSelectedTask] = useState(null);
 
   useEffect(() => {
@@ -81,8 +81,11 @@ export default function DashboardPage() {
     }
   };
 
-  const filteredTasks = tasks.filter(task => {
+  const filteredTasks = tasks.filter((task) => {
     if (filter === 'all') return true;
+    if (filter === 'overdue') {
+      return task.dueDate && new Date(task.dueDate) < new Date() && task.status !== 'completed';
+    }
     return task.status === filter;
   });
 
@@ -104,8 +107,8 @@ export default function DashboardPage() {
 
       {/* Filter Tabs */}
       <div className="px-4">
-        <div className="grid grid-cols-4 gap-1.5">
-          {['all', 'pending', 'in-progress', 'completed'].map((status) => (
+        <div className="grid grid-cols-5 gap-1.5">
+          {['all', 'pending', 'in-progress', 'completed', 'overdue'].map((status) => (
             <button
               key={status}
               onClick={() => setFilter(status)}
