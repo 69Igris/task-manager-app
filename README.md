@@ -113,23 +113,6 @@ client/
 - `GET /api/tasks/:id/comments` - List comments
 - `POST /api/tasks/:id/comments` - Add comment
 
-### Users (Admin Only)
-- `GET /api/users` - List all users
-- `PUT /api/users/:id` - Update user role
-
-## 🎯 RBAC Permission Matrix
-
-| Action | Worker | Manager | Supervisor | Admin |
-|--------|--------|---------|------------|-------|
-| Create Project | ❌ | ✅ | ✅ | ✅ |
-| View All Projects | ❌ | ❌ | ✅ | ✅ |
-| Create Task | ❌ | ✅ | ✅ | ✅ |
-| Update Task Status | ✅* | ✅ | ✅ | ✅ |
-| Add Comment | ✅* | ✅ | ✅ | ✅ |
-| Manage Users | ❌ | ❌ | ❌ | ✅ |
-
-*\* Worker can only access assigned tasks*
-
 ## 🔒 Security Features
 
 - Password hashing with bcrypt (10 rounds)
