@@ -193,19 +193,31 @@ export default function DashboardPage() {
                 {/* Footer - Badges */}
                 <div className="flex items-center gap-2 flex-wrap">
                   {/* Due Date Badge - Always show if exists */}
-                  {task.dueDate && (
-                    <span className={`inline-flex items-center gap-1 text-xs px-3 py-1.5 rounded-full border-2 font-semibold ${
-                      new Date(task.dueDate) < new Date() && task.status !== 'completed'
-                        ? 'bg-red-50 border-red-300 text-red-800'
-                        : task.status === 'completed'
-                        ? 'bg-green-50 border-green-300 text-green-800'
-                        : 'bg-blue-50 border-blue-300 text-blue-800'
-                    }`}>
-                      <span>📅</span>
-                      {new Date(task.dueDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                      {new Date(task.dueDate) < new Date() && task.status !== 'completed' && ' - OVERDUE'}
-                    </span>
-                  )}
+                  {task.dueDate && (() => {
+                    const today = new Date();
+                    today.setHours(0, 0, 0, 0);
+                    const dueDate = new Date(task.dueDate);
+                    dueDate.setHours(0, 0, 0, 0);
+                    const isOverdue = dueDate < today && task.status !== 'completed';
+                    const isDueToday = dueDate.getTime() === today.getTime() && task.status !== 'completed';
+                    
+                    return (
+                      <span className={`inline-flex items-center gap-1 text-xs px-3 py-1.5 rounded-full border-2 font-semibold ${
+                        isOverdue
+                          ? 'bg-red-50 border-red-300 text-red-800'
+                          : isDueToday
+                          ? 'bg-orange-50 border-orange-300 text-orange-800'
+                          : task.status === 'completed'
+                          ? 'bg-green-50 border-green-300 text-green-800'
+                          : 'bg-blue-50 border-blue-300 text-blue-800'
+                      }`}>
+                        <span>📅</span>
+                        {new Date(task.dueDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                        {isOverdue && ' - OVERDUE'}
+                        {isDueToday && ' - DUE TODAY'}
+                      </span>
+                    );
+                  })()}
                   
                   {/* Priority Badge */}
                   <span className={`inline-flex items-center text-xs px-3 py-1.5 rounded-full border-2 font-bold shadow-sm ${getPriorityColor(task.priority)}`}>
