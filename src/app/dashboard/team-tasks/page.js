@@ -128,12 +128,12 @@ export default function TeamTasksPage() {
       {/* Filters */}
       <div className="px-4 space-y-3">
         {/* Status Filter */}
-        <div className="grid grid-cols-5 gap-1.5">
+        <div className="grid grid-cols-3 sm:grid-cols-5 gap-1.5">
           {['all', 'pending', 'in-progress', 'completed', 'overdue'].map((status) => (
             <button
               key={status}
               onClick={() => setFilter(status)}
-              className={`px-2 py-2 rounded-lg text-xs font-semibold transition-all shadow-sm ${
+              className={`px-2 py-2 rounded-lg text-[10px] sm:text-xs font-semibold transition-all shadow-sm ${
                 filter === status
                   ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg'
                   : 'bg-white text-gray-700 border border-gray-300 hover:border-blue-400 hover:shadow-md'
