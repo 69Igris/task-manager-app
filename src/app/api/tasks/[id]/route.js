@@ -18,6 +18,31 @@ export async function GET(request, { params }) {
         creator: {
           select: { id: true, name: true, email: true },
         },
+        comments: {
+          where: { parentId: null },
+          include: {
+            author: {
+              select: { id: true, name: true, email: true },
+            },
+            replies: {
+              include: {
+                author: {
+                  select: { id: true, name: true, email: true },
+                },
+                replies: {
+                  include: {
+                    author: {
+                      select: { id: true, name: true, email: true },
+                    },
+                  },
+                  orderBy: { createdAt: 'asc' },
+                },
+              },
+              orderBy: { createdAt: 'asc' },
+            },
+          },
+          orderBy: { createdAt: 'desc' },
+        },
       },
     });
 
