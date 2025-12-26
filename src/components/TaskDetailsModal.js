@@ -216,25 +216,47 @@ export default function TaskDetailsModal({ task, onClose, onUpdate, onDelete }) 
             </div>
           </div>
 
-          {/* Dates */}
+          {/* Status and Due Date - Side by Side */}
           <div className="grid grid-cols-2 gap-3">
+            {/* Status */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Created Date
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Status
               </label>
-              <div className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-900 text-sm">
-                {formatDate(task.createdAt)}
-              </div>
+              {canEdit ? (
+                <select
+                  value={status}
+                  onChange={(e) => setStatus(e.target.value)}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                >
+                  <option value="pending">Pending</option>
+                  <option value="in-progress">In Progress</option>
+                  <option value="completed">Completed</option>
+                </select>
+              ) : (
+                <div className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-900">
+                  {task.status.replace('-', ' ').toUpperCase()}
+                </div>
+              )}
+              {!canEdit && (
+                <p className="text-xs text-gray-500 mt-1">
+                  {task.status === 'completed' 
+                    ? 'Only the creator can modify completed tasks'
+                    : 'You do not have permission to edit this task'}
+                </p>
+              )}
             </div>
+            
+            {/* Due Date */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
                 Due Date
               </label>
               <div className={`w-full px-4 py-2 border rounded-lg text-sm ${
                 isOverdue ? 'bg-red-50 border-red-300 text-red-800 font-semibold' : 'bg-gray-50 border-gray-300 text-gray-900'
               }`}>
                 {formatDate(task.dueDate)}
-                {isOverdue && ' ⚠️ OVERDUE'}
+                {isOverdue && ' ⚠️'}
               </div>
             </div>
           </div>
@@ -249,33 +271,14 @@ export default function TaskDetailsModal({ task, onClose, onUpdate, onDelete }) 
             </div>
           </div>
 
-          {/* Status */}
+          {/* Created Date */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Status
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Created Date
             </label>
-            {canEdit ? (
-              <select
-                value={status}
-                onChange={(e) => setStatus(e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              >
-                <option value="pending">Pending</option>
-                <option value="in-progress">In Progress</option>
-                <option value="completed">Completed</option>
-              </select>
-            ) : (
-              <div className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-900">
-                {task.status.replace('-', ' ').toUpperCase()}
-              </div>
-            )}
-            {!canEdit && (
-              <p className="text-xs text-gray-500 mt-1">
-                {task.status === 'completed' 
-                  ? 'Only the creator can modify completed tasks'
-                  : 'You do not have permission to edit this task'}
-              </p>
-            )}
+            <div className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-900 text-sm">
+              {formatDate(task.createdAt)}
+            </div>
           </div>
 
           {/* Completed At */}

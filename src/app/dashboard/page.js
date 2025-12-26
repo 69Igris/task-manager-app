@@ -123,9 +123,9 @@ export default function DashboardPage() {
 
         {/* Filters */}
         <div className="px-4 pb-3">
-          <div className="flex items-center gap-3 flex-wrap">
-            <div className="flex items-center gap-1.5">
-              <label className="text-xs font-medium text-gray-700 whitespace-nowrap">Status:</label>
+          <div className="flex items-start gap-3 flex-wrap">
+            <div className="flex flex-col">
+              <label className="text-xs font-medium text-gray-700 whitespace-nowrap mb-1">Status:</label>
               <select
                 value={filter}
                 onChange={(e) => setFilter(e.target.value)}
@@ -139,8 +139,8 @@ export default function DashboardPage() {
               </select>
             </div>
 
-            <div className="flex items-center gap-1.5">
-              <label className="text-xs font-medium text-gray-700 whitespace-nowrap">Due Date:</label>
+            <div className="flex flex-col">
+              <label className="text-xs font-medium text-gray-700 whitespace-nowrap mb-1">Due Date:</label>
               <input
                 type="date"
                 value={selectedDate}
@@ -227,7 +227,12 @@ export default function DashboardPage() {
                 )}
 
                 {/* Footer - Badges */}
-                <div className="flex items-center gap-2 flex-wrap">
+                <div className="flex items-center gap-1 flex-wrap">
+                  {/* Status Badge */}
+                  <span className="inline-flex items-center text-[9px] sm:text-xs px-1.5 sm:px-3 py-0.5 sm:py-1.5 rounded-full bg-gradient-to-r from-gray-100 to-gray-200 text-gray-700 font-semibold whitespace-nowrap">
+                    {task.status.replace('-', ' ').toUpperCase()}
+                  </span>
+                  
                   {/* Due Date Badge - Always show if exists */}
                   {task.dueDate && (() => {
                     const today = new Date();
@@ -238,7 +243,7 @@ export default function DashboardPage() {
                     const isDueToday = dueDate.getTime() === today.getTime() && task.status !== 'completed';
                     
                     return (
-                      <span className={`inline-flex items-center gap-1 text-xs px-3 py-1.5 rounded-full border-2 font-semibold ${
+                      <span className={`inline-flex items-center gap-0.5 text-[9px] sm:text-xs px-1.5 sm:px-3 py-0.5 sm:py-1.5 rounded-full border sm:border-2 font-semibold whitespace-nowrap ${
                         isOverdue
                           ? 'bg-red-50 border-red-300 text-red-800'
                           : isDueToday
@@ -247,7 +252,7 @@ export default function DashboardPage() {
                           ? 'bg-green-50 border-green-300 text-green-800'
                           : 'bg-blue-50 border-blue-300 text-blue-800'
                       }`}>
-                        <span>📅</span>
+                        <span className="text-[8px] sm:text-xs">📅</span>
                         {new Date(task.dueDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                         {isOverdue && ' - OVERDUE'}
                         {isDueToday && ' - DUE TODAY'}
@@ -256,13 +261,8 @@ export default function DashboardPage() {
                   })()}
                   
                   {/* Priority Badge */}
-                  <span className={`inline-flex items-center text-xs px-3 py-1.5 rounded-full border-2 font-bold shadow-sm ${getPriorityColor(task.priority)}`}>
+                  <span className={`inline-flex items-center text-[9px] sm:text-xs px-1.5 sm:px-3 py-0.5 sm:py-1.5 rounded-full border sm:border-2 font-bold shadow-sm whitespace-nowrap ${getPriorityColor(task.priority)}`}>
                     {task.priority ? task.priority.toUpperCase() : 'NORMAL'}
-                  </span>
-
-                  {/* Status Badge */}
-                  <span className="inline-flex items-center text-xs px-3 py-1.5 rounded-full bg-gradient-to-r from-gray-100 to-gray-200 text-gray-700 font-semibold">
-                    {task.status.replace('-', ' ').toUpperCase()}
                   </span>
                 </div>
               </div>
