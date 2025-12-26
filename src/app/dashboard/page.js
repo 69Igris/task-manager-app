@@ -177,7 +177,7 @@ export default function DashboardPage() {
             >
               {/* Card Header - Equipment & Area */}
               <div className="bg-gradient-to-r from-blue-50 via-indigo-50 to-purple-50 px-4 py-4 border-b border-gray-100">
-                <div className="flex items-start justify-between">
+                <div className="flex items-start justify-between gap-4">
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-2">
                       <span className="text-xs font-bold text-gray-500 tracking-wide">EQUIPMENT</span>
@@ -188,16 +188,16 @@ export default function DashboardPage() {
                       {task.equipment || 'N/A'}
                     </h3>
                   </div>
+                  {task.area && (
+                    <div className="flex-1 bg-white/50 rounded-lg px-3 py-2">
+                      <span className="text-xs font-bold text-gray-500 tracking-wide">AREA</span>
+                      <p className="text-sm font-semibold text-gray-700 mt-1 flex items-center gap-2">
+                        <span>📍</span>
+                        {task.area}
+                      </p>
+                    </div>
+                  )}
                 </div>
-                {task.area && (
-                  <div className="mt-3 bg-white/50 rounded-lg px-3 py-2">
-                    <span className="text-xs font-bold text-gray-500 tracking-wide">AREA</span>
-                    <p className="text-sm font-semibold text-gray-700 mt-1 flex items-center gap-2">
-                      <span>📍</span>
-                      {task.area}
-                    </p>
-                  </div>
-                )}
               </div>
 
               {/* Card Body - Task Details */}
