@@ -11,6 +11,7 @@ export default function DashboardPage() {
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('all'); // all, pending, in-progress, completed, overdue
+  const [selectedDate, setSelectedDate] = useState('');
   const [selectedTask, setSelectedTask] = useState(null);
 
   useEffect(() => {
@@ -82,11 +83,24 @@ export default function DashboardPage() {
   };
 
   const filteredTasks = tasks.filter((task) => {
-    if (filter === 'all') return true;
-    if (filter === 'overdue') {
-      return task.dueDate && new Date(task.dueDate) < new Date() && task.status !== 'completed';
-    }
-    return task.status === filter;
+    const matchesStatus = (() => {
+      if (filter === 'all') return true;
+      if (filter === 'overdue') {
+        return task.dueDate && new Date(task.dueDate) < new Date() && task.status !== 'completed';
+      }
+      return task.status === filter;
+    })();
+
+    if (!matchesStatus) return false;
+
+    if (!selectedDate) return true;
+    if (!task.dueDate) return false;
+
+    const taskDate = new Date(task.dueDate);
+    const normalizedTaskDate = new Date(Date.UTC(taskDate.getFullYear(), taskDate.getMonth(), taskDate.getDate()));
+    const normalizedSelectedDate = new Date(selectedDate + 'T00:00:00Z');
+
+    return normalizedTaskDate.getTime() === normalizedSelectedDate.getTime();
   });
 
   if (loading) {
@@ -98,34 +112,56 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="space-y-4 pb-4">
-      {/* Page Title */}
-      <div className="px-4 pt-4">
-        <h2 className="text-2xl font-bold text-gray-900">My Tasks</h2>
-        <p className="text-sm text-gray-600 mt-1">Tasks assigned to you</p>
-      </div>
+    <div className="pb-4">
+      {/* Sticky Header Section */}
+      <div className="sticky top-0 z-10 bg-white border-b border-gray-200 shadow-sm">
+        {/* Page Title */}
+        <div className="px-4 pt-4 pb-3">
+          <h2 className="text-2xl font-bold text-gray-900">My Tasks</h2>
+          <p className="text-sm text-gray-600 mt-1">Tasks assigned to you</p>
+        </div>
 
-      {/* Filter Tabs */}
-      <div className="px-4">
-        <div className="grid grid-cols-3 sm:grid-cols-5 gap-1.5">
-          {['all', 'pending', 'in-progress', 'completed', 'overdue'].map((status) => (
-            <button
-              key={status}
-              onClick={() => setFilter(status)}
-              className={`px-2 py-2 rounded-lg text-[10px] sm:text-xs font-semibold transition-all shadow-sm ${
-                filter === status
-                  ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg'
-                  : 'bg-white text-gray-700 border border-gray-300 hover:border-blue-400 hover:shadow-md'
-              }`}
-            >
-              {status === 'in-progress' ? 'In Progress' : status.charAt(0).toUpperCase() + status.slice(1)}
-            </button>
-          ))}
+        {/* Filters */}
+        <div className="px-4 pb-3">
+          <div className="flex items-center gap-3 flex-wrap">
+            <div className="flex items-center gap-1.5">
+              <label className="text-xs font-medium text-gray-700 whitespace-nowrap">Status:</label>
+              <select
+                value={filter}
+                onChange={(e) => setFilter(e.target.value)}
+                className="text-xs px-2 py-1.5 border border-gray-300 rounded-lg focus:ring-1 focus:ring-blue-500 focus:border-transparent bg-white min-w-[110px]"
+              >
+                {['all', 'pending', 'in-progress', 'completed', 'overdue'].map((status) => (
+                  <option key={status} value={status}>
+                    {status === 'in-progress' ? 'In Progress' : status.charAt(0).toUpperCase() + status.slice(1)}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="flex items-center gap-1.5">
+              <label className="text-xs font-medium text-gray-700 whitespace-nowrap">Due Date:</label>
+              <input
+                type="date"
+                value={selectedDate}
+                onChange={(e) => setSelectedDate(e.target.value)}
+                className="text-xs px-2 py-1.5 border border-gray-300 rounded-lg focus:ring-1 focus:ring-blue-500 focus:border-transparent bg-white min-w-[130px]"
+              />
+              {selectedDate && (
+                <button
+                  onClick={() => setSelectedDate('')}
+                  className="text-xs text-blue-600 hover:text-blue-700 font-medium"
+                >
+                  ✕
+                </button>
+              )}
+            </div>
+          </div>
         </div>
       </div>
 
       {/* Task List */}
-      <div className="px-4 space-y-3 pb-2">
+      <div className="px-4 space-y-3 pt-4">
         {filteredTasks.length === 0 ? (
           <div className="text-center py-16 bg-white rounded-2xl border-2 border-dashed border-gray-200">
             <div className="text-gray-300 text-6xl mb-3">📋</div>
