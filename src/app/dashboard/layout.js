@@ -5,12 +5,16 @@ import { useRouter, usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import AddTaskModal from '@/components/AddTaskModal';
+import AddEventModal from '@/components/AddEventModal';
 
 export default function DashboardLayout({ children }) {
   const { user, loading, logout } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
   const [showAddTask, setShowAddTask] = useState(false);
+  const [showAddEvent, setShowAddEvent] = useState(false);
+
+  const isEventsPage = pathname === '/dashboard/events';
 
   useEffect(() => {
     if (!loading && !user) {
@@ -73,9 +77,9 @@ export default function DashboardLayout({ children }) {
         {children}
       </main>
 
-      {/* Floating Add Task Button */}
+      {/* Floating Add Task/Event Button */}
       <button
-        onClick={() => setShowAddTask(true)}
+        onClick={() => isEventsPage ? setShowAddEvent(true) : setShowAddTask(true)}
         className="fixed bottom-20 right-4 w-16 h-16 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-2xl shadow-2xl flex items-center justify-center text-3xl z-20 hover:from-blue-700 hover:to-indigo-700 active:scale-95 transition-all hover:shadow-blue-500/50 hover:scale-110 group"
       >
         <svg className="w-8 h-8 transition-transform group-hover:rotate-90" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -122,6 +126,16 @@ export default function DashboardLayout({ children }) {
         onTaskAdded={() => {
           // Refresh the page to show the new task
           router.refresh();
+        }}
+      />
+
+      {/* Add Event Modal */}
+      <AddEventModal
+        isOpen={showAddEvent}
+        onClose={() => setShowAddEvent(false)}
+        onEventAdded={() => {
+          // Refresh the events page with a new timestamp to trigger re-fetch
+          router.push(`/dashboard/events?refresh=${Date.now()}`);
         }}
       />
     </div>

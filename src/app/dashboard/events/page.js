@@ -2,18 +2,23 @@
 
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/components/Toast';
+import { useConfirm } from '@/components/ConfirmDialog';
 import { useState, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 
 export default function EventsPage() {
-  const { fetchWithAuth } = useAuth();
+  const { fetchWithAuth, user } = useAuth();
   const { showToast } = useToast();
+  const { showConfirm } = useConfirm();
+  const searchParams = useSearchParams();
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedDate, setSelectedDate] = useState('');
 
+  // Re-fetch events when component mounts or when refresh param changes
   useEffect(() => {
     fetchEvents();
-  }, []);
+  }, [searchParams.get('refresh')]);
 
   const fetchEvents = async () => {
     try {
@@ -70,7 +75,37 @@ export default function EventsPage() {
 
     return { formattedDate, timeInfo, diffDays };
   };
+  const deleteEvent = async (eventId, eventTitle) => {
+    const confirmed = await showConfirm({
+      title: 'Delete Event',
+      message: `Are you sure you want to delete "${eventTitle}"? This action cannot be undone.`,
+      confirmText: 'Delete',
+      cancelText: 'Cancel',
+      type: 'danger',
+    });
 
+    if (!confirmed) return;
+
+    try {
+      const response = await fetchWithAuth(`/api/events/${eventId}`, {
+        method: 'DELETE',
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        showToast('Event deleted successfully', 'success');
+        // Remove the event from the local state
+        setEvents((prevEvents) => prevEvents.filter((event) => event.id !== eventId));
+      } else {
+        console.error('Delete failed with status:', response.status, 'Error:', data);
+        throw new Error(data.error || 'Failed to delete event');
+      }
+    } catch (error) {
+      console.error('Error deleting event:', error);
+      showToast(error.message || 'Failed to delete event', 'error');
+    }
+  };
   useEffect(() => {
     fetchEvents();
   }, [selectedDate]);
@@ -173,6 +208,17 @@ export default function EventsPage() {
                         </span>
                       )}
                     </div>
+                    {user && event.createdBy === user.id && (
+                      <button
+                        onClick={() => deleteEvent(event.id, event.title)}
+                        className="ml-2 p-2 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors"
+                        title="Delete event"
+                      >
+                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                      </button>
+                    )}
                   </div>
                 </div>
 
