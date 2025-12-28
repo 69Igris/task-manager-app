@@ -16,6 +16,14 @@ export default function DashboardPage() {
 
   useEffect(() => {
     fetchMyTasks();
+    
+    // Listen for refresh event from task creation
+    const handleRefresh = () => {
+      console.log('📋 Dashboard: Received refreshTasks event, fetching tasks...');
+      fetchMyTasks();
+    };
+    window.addEventListener('refreshTasks', handleRefresh);
+    return () => window.removeEventListener('refreshTasks', handleRefresh);
   }, []);
 
   const fetchMyTasks = async () => {

@@ -17,6 +17,14 @@ export default function TeamTasksPage() {
 
   useEffect(() => {
     fetchAllTasks();
+    
+    // Listen for refresh event from task creation
+    const handleRefresh = () => {
+      console.log('👥 Team Tasks: Received refreshTasks event, fetching tasks...');
+      fetchAllTasks();
+    };
+    window.addEventListener('refreshTasks', handleRefresh);
+    return () => window.removeEventListener('refreshTasks', handleRefresh);
   }, []);
 
   const fetchAllTasks = async () => {

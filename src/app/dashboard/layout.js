@@ -2,17 +2,20 @@
 
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter, usePathname } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
 import AddTaskModal from '@/components/AddTaskModal';
 import AddEventModal from '@/components/AddEventModal';
+import NotificationDropdown from '@/components/NotificationDropdown';
 
 export default function DashboardLayout({ children }) {
-  const { user, loading, logout } = useAuth();
+  const { user, loading, logout, fetchWithAuth } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
   const [showAddTask, setShowAddTask] = useState(false);
   const [showAddEvent, setShowAddEvent] = useState(false);
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
 
   const isEventsPage = pathname === '/dashboard/events';
 
@@ -21,6 +24,57 @@ export default function DashboardLayout({ children }) {
       router.push('/login');
     }
   }, [user, loading, router]);
+
+  const fetchUnreadCount = useCallback(async () => {
+    try {
+      const response = await fetchWithAuth('/api/notifications');
+      const data = await response.json();
+      if (response.ok) {
+        setUnreadCount(data.unreadCount || 0);
+      }
+    } catch (error) {
+      console.error('Error fetching unread count:', error);
+    }
+  }, [fetchWithAuth]);
+
+  const checkReminders = useCallback(async () => {
+    try {
+      await fetchWithAuth('/api/notifications/check-reminders', {
+        method: 'POST',
+      });
+      fetchUnreadCount(); // Refresh count after checking reminders
+    } catch (error) {
+      console.error('Error checking reminders:', error);
+    }
+  }, [fetchWithAuth, fetchUnreadCount]);
+
+  useEffect(() => {
+    // Fetch unread count on mount and every 30 seconds
+    if (user) {
+      fetchUnreadCount();
+      const interval = setInterval(fetchUnreadCount, 30000);
+      return () => clearInterval(interval);
+    }
+  }, [user, fetchUnreadCount]);
+
+  useEffect(() => {
+    // Check for reminders every 5 minutes
+    if (user) {
+      checkReminders();
+      const interval = setInterval(checkReminders, 5 * 60 * 1000);
+      return () => clearInterval(interval);
+    }
+  }, [user, checkReminders]);
+
+  // Expose refresh function for global use
+  useEffect(() => {
+    const handleRefreshNotifications = () => {
+      console.log('🔔 Received refreshNotifications event, fetching...');
+      fetchUnreadCount();
+    };
+    window.addEventListener('refreshNotifications', handleRefreshNotifications);
+    return () => window.removeEventListener('refreshNotifications', handleRefreshNotifications);
+  }, [fetchUnreadCount]);
 
   if (loading) {
     return (
@@ -44,7 +98,7 @@ export default function DashboardLayout({ children }) {
   return (
     <div className="min-h-screen bg-gray-50 pb-20">
       {/* Header */}
-      <header className="bg-gradient-to-r from-blue-600 to-indigo-600 border-b border-blue-700 sticky top-0 z-10 shadow-lg">
+      <header className="bg-gradient-to-r from-blue-600 to-indigo-600 border-b border-blue-700 sticky top-0 z-[100] shadow-lg">
         <div className="px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center shadow-md">
@@ -59,6 +113,31 @@ export default function DashboardLayout({ children }) {
               </div>
               <span className="text-sm font-medium text-white">{user.name}</span>
             </div>
+            
+            {/* Notification Bell */}
+            <div className="relative">
+              <button
+                onClick={() => setShowNotifications(!showNotifications)}
+                className="flex items-center gap-1 text-sm text-white hover:text-yellow-200 font-medium transition-colors bg-white/10 hover:bg-white/20 px-3 py-2 rounded-lg relative"
+              >
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                </svg>
+                {unreadCount > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-bold">
+                    {unreadCount > 9 ? '9+' : unreadCount}
+                  </span>
+                )}
+              </button>
+              
+              {showNotifications && (
+                <NotificationDropdown
+                  onClose={() => setShowNotifications(false)}
+                  onNotificationRead={fetchUnreadCount}
+                />
+              )}
+            </div>
+
             <button
               onClick={logout}
               className="flex items-center gap-1 text-sm text-white hover:text-red-200 font-medium transition-colors bg-white/10 hover:bg-white/20 px-3 py-2 rounded-lg"
@@ -124,8 +203,12 @@ export default function DashboardLayout({ children }) {
         isOpen={showAddTask}
         onClose={() => setShowAddTask(false)}
         onTaskAdded={() => {
-          // Refresh the page to show the new task
-          router.refresh();
+          console.log('📋 onTaskAdded: Dispatching refreshTasks event');
+          // Trigger custom event to refresh task list in child pages
+          window.dispatchEvent(new Event('refreshTasks'));
+          // Refresh notification count immediately
+          console.log('🔔 onTaskAdded: Fetching unread count');
+          fetchUnreadCount();
         }}
       />
 

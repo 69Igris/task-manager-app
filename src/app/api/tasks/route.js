@@ -130,6 +130,41 @@ export async function POST(request) {
       select: { id: true, name: true, email: true },
     });
 
+    // Create notifications for assigned users
+    try {
+      const now = new Date();
+      const nextReminder = new Date(now.getTime() + 3 * 60 * 60 * 1000); // 3 hours from now
+      const expiresAt = new Date(now.getTime() + 6 * 60 * 60 * 1000); // 6 hours from now
+
+      console.log('Creating notifications for users:', task.assignedTo);
+      console.log('Task details:', { id: task.id, title: task.title, equipment: task.equipment, area: task.area });
+      
+      const notificationPromises = task.assignedTo.map(userId => {
+        console.log('Creating notification for userId:', userId);
+        return prisma.notification.create({
+          data: {
+            userId,
+            taskId: task.id,
+            type: 'assigned',
+            message: `You have been assigned to task: ${task.title} (${task.equipment} - ${task.area})`,
+            nextReminderAt: nextReminder,
+            expiresAt,
+          },
+        });
+      });
+
+      const createdNotifications = await Promise.all(notificationPromises);
+      console.log('✅ Notifications created successfully:', createdNotifications.length);
+      console.log('Created notification IDs:', createdNotifications.map(n => n.id));
+    } catch (notificationError) {
+      console.error('❌ ERROR creating notifications:', notificationError);
+      console.error('Error name:', notificationError.name);
+      console.error('Error message:', notificationError.message);
+      console.error('Error stack:', notificationError.stack);
+      // Continue even if notifications fail
+    }
+
+    console.log('📤 Returning task response with status 201');
     return NextResponse.json({ ...task, assignedUsers }, { status: 201 });
   } catch (error) {
     console.error('Error creating task:', error);

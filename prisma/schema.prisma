@@ -22,6 +22,7 @@ model User {
   comments      Comment[]
   refreshTokens RefreshToken[]
   createdEvents Event[]
+  notifications Notification[]
 }
 
 model RefreshToken {
@@ -58,6 +59,25 @@ model Task {
   @@index([createdBy])
   @@index([status])
   @@index([createdAt])
+}
+
+model Notification {
+  id              String     @id @default(auto()) @map("_id") @db.ObjectId
+  userId          String     @db.ObjectId
+  user            User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  taskId          String     @db.ObjectId
+  type            String     // "assigned" or "reminder"
+  message         String
+  isRead          Boolean    @default(false)
+  nextReminderAt  DateTime?  // When the next reminder should be sent
+  createdAt       DateTime   @default(now())
+  expiresAt       DateTime   // Auto-delete after 6 hours
+
+  @@index([userId])
+  @@index([taskId])
+  @@index([isRead])
+  @@index([nextReminderAt])
+  @@index([expiresAt(sort: Asc)], map: "notification_ttl")
 }
 
 model Comment {

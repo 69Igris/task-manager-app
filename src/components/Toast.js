@@ -1,14 +1,15 @@
 'use client';
 
-import { createContext, useContext, useState, useCallback } from 'react';
+import { createContext, useContext, useState, useCallback, useRef } from 'react';
 
 const ToastContext = createContext();
 
 export function ToastProvider({ children }) {
   const [toasts, setToasts] = useState([]);
+  const idCounter = useRef(0);
 
   const showToast = useCallback((message, type = 'info') => {
-    const id = Date.now();
+    const id = `${Date.now()}-${idCounter.current++}`;
     setToasts(prev => [...prev, { id, message, type }]);
     
     setTimeout(() => {

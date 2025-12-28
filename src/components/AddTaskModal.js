@@ -75,9 +75,19 @@ export default function AddTaskModal({ isOpen, onClose, onTaskAdded }) {
 
       if (response.ok) {
         showToast('Task created successfully', 'success');
+        console.log('✅ Task created, triggering refreshes...');
         resetForm();
         onClose();
-        if (onTaskAdded) onTaskAdded();
+        
+        // Trigger task list refresh
+        if (onTaskAdded) {
+          console.log('📤 Calling onTaskAdded callback');
+          onTaskAdded();
+        }
+        
+        // Trigger notification refresh immediately
+        console.log('🔔 Dispatching refreshNotifications event');
+        window.dispatchEvent(new Event('refreshNotifications'));
       } else {
         throw new Error(data.error || 'Failed to create task');
       }
