@@ -1,6 +1,5 @@
 import bcrypt from 'bcryptjs';
 import { prisma } from '@/lib/prisma';
-import { signAccessToken, generateRefreshToken } from '@/lib/jwt';
 
 export async function POST(request) {
   try {
@@ -37,7 +36,7 @@ export async function POST(request) {
     const passwordHash = await bcrypt.hash(password, 10);
 
     // Create user
-    const user = await prisma.user.create({
+    const newUser = await prisma.user.create({
       data: {
         email,
         name,
@@ -49,9 +48,9 @@ export async function POST(request) {
       {
         message: 'User registered successfully',
         user: {
-          id: user.id,
-          email: user.email,
-          name: user.name,
+          id: newUser.id,
+          email: newUser.email,
+          name: newUser.name,
         },
       },
       { status: 201 }
@@ -62,5 +61,5 @@ export async function POST(request) {
       { error: 'Internal server error' },
       { status: 500 }
     );
-  }
+  }      
 }

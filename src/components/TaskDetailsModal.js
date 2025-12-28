@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/components/Toast';
 import { useConfirm } from '@/components/ConfirmDialog';
@@ -11,12 +11,127 @@ export default function TaskDetailsModal({ task, onClose, onUpdate, onDelete }) 
   const { showConfirm } = useConfirm();
   const [status, setStatus] = useState(task?.status || 'pending');
   const [loading, setLoading] = useState(false);
+  const [comments, setComments] = useState([]);
+  const [newComment, setNewComment] = useState('');
+  const [replyTo, setReplyTo] = useState(null);
+  const [replyContent, setReplyContent] = useState('');
+  const [loadingComments, setLoadingComments] = useState(false);
+  const [submittingComment, setSubmittingComment] = useState(false);
+  const replyBoxRef = useRef(null);
 
   useEffect(() => {
     if (task) {
       setStatus(task.status);
+      fetchComments();
     }
   }, [task]);
+
+  useEffect(() => {
+    if (replyTo && replyBoxRef.current) {
+      setTimeout(() => {
+        replyBoxRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }, 100);
+    }
+  }, [replyTo]);
+
+  const fetchComments = async () => {
+    if (!task?.id) return;
+    
+    setLoadingComments(true);
+    try {
+      const response = await fetchWithAuth(`/api/tasks/${task.id}/comments`);
+      const data = await response.json();
+      
+      if (response.ok) {
+        setComments(data.comments || []);
+      }
+    } catch (error) {
+      console.error('Error fetching comments:', error);
+    } finally {
+      setLoadingComments(false);
+    }
+  };
+
+  const handleAddComment = async () => {
+    if (!newComment.trim()) return;
+    
+    setSubmittingComment(true);
+    try {
+      const response = await fetchWithAuth(`/api/tasks/${task.id}/comments`, {
+        method: 'POST',
+        body: JSON.stringify({ content: newComment }),
+      });
+      
+      const data = await response.json();
+      
+      if (response.ok) {
+        setNewComment('');
+        await fetchComments();
+        showToast('Comment added successfully', 'success');
+      } else {
+        throw new Error(data.error || 'Failed to add comment');
+      }
+    } catch (error) {
+      showToast(error.message || 'Failed to add comment', 'error');
+    } finally {
+      setSubmittingComment(false);
+    }
+  };
+
+  const handleAddReply = async (parentId) => {
+    if (!replyContent.trim()) return;
+    
+    setSubmittingComment(true);
+    try {
+      const response = await fetchWithAuth(`/api/tasks/${task.id}/comments`, {
+        method: 'POST',
+        body: JSON.stringify({ content: replyContent, parentId }),
+      });
+      
+      const data = await response.json();
+      
+      if (response.ok) {
+        setReplyContent('');
+        setReplyTo(null);
+        await fetchComments();
+        showToast('Reply added successfully', 'success');
+      } else {
+        throw new Error(data.error || 'Failed to add reply');
+      }
+    } catch (error) {
+      showToast(error.message || 'Failed to add reply', 'error');
+    } finally {
+      setSubmittingComment(false);
+    }
+  };
+
+  const handleDeleteComment = async (commentId) => {
+    const confirmed = await showConfirm({
+      title: 'Delete Comment',
+      message: 'Are you sure you want to delete this comment?',
+      confirmText: 'Yes, Delete',
+      cancelText: 'Cancel',
+      type: 'danger',
+    });
+
+    if (!confirmed) return;
+
+    try {
+      const response = await fetchWithAuth(`/api/tasks/${task.id}/comments/${commentId}`, {
+        method: 'DELETE',
+      });
+      
+      if (response.ok) {
+        await fetchComments();
+        showToast('Comment deleted successfully', 'success');
+      } else {
+        const data = await response.json();
+        throw new Error(data.error || 'Failed to delete comment');
+      }
+    } catch (error) {
+      showToast(error.message || 'Failed to delete comment', 'error');
+    }
+  };
 
   if (!task) return null;
 
@@ -103,6 +218,102 @@ export default function TaskDetailsModal({ task, onClose, onUpdate, onDelete }) 
       month: 'short',
       day: 'numeric',
     });
+  };
+
+  const formatCommentDate = (dateString) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffMs = now - date;
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
+
+    if (diffMins < 1) return 'Just now';
+    if (diffMins < 60) return `${diffMins}m ago`;
+    if (diffHours < 24) return `${diffHours}h ago`;
+    if (diffDays < 7) return `${diffDays}d ago`;
+    
+    return date.toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+    });
+  };
+
+  const renderComment = (comment, depth = 0) => {
+    const isAuthor = user?.id === comment.authorId;
+    
+    return (
+      <div key={comment.id} className={`${depth > 0 ? 'ml-8 mt-3' : 'mt-4'}`}>
+        <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+          <div className="flex items-start justify-between mb-2">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center text-white text-sm font-semibold">
+                {comment.author.name.charAt(0).toUpperCase()}
+              </div>
+              <div>
+                <div className="text-sm font-medium text-gray-900">{comment.author.name}</div>
+                <div className="text-xs text-gray-500">{formatCommentDate(comment.createdAt)}</div>
+              </div>
+            </div>
+            {isAuthor && (
+              <button
+                onClick={() => handleDeleteComment(comment.id)}
+                className="text-red-600 hover:text-red-800 text-sm"
+              >
+                Delete
+              </button>
+            )}
+          </div>
+          <p className="text-gray-800 text-sm whitespace-pre-wrap">{comment.content}</p>
+          <button
+            onClick={() => {
+              setReplyTo(comment.id);
+              setReplyContent('');
+            }}
+            className="mt-2 text-xs text-blue-600 hover:text-blue-800 font-medium"
+          >
+            Reply
+          </button>
+          
+          {replyTo === comment.id && (
+            <div ref={replyBoxRef} className="mt-3">
+              <textarea
+                value={replyContent}
+                onChange={(e) => setReplyContent(e.target.value)}
+                placeholder="Write a reply..."
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                rows="2"
+                autoFocus
+              />
+              <div className="flex gap-2 mt-2">
+                <button
+                  onClick={() => handleAddReply(comment.id)}
+                  disabled={!replyContent.trim() || submittingComment}
+                  className="px-3 py-1 bg-blue-600 text-white rounded text-sm hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {submittingComment ? 'Sending...' : 'Send'}
+                </button>
+                <button
+                  onClick={() => {
+                    setReplyTo(null);
+                    setReplyContent('');
+                  }}
+                  className="px-3 py-1 bg-gray-200 text-gray-700 rounded text-sm hover:bg-gray-300"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+        
+        {comment.replies && comment.replies.length > 0 && (
+          <div className="mt-2">
+            {comment.replies.map((reply) => renderComment(reply, depth + 1))}
+          </div>
+        )}
+      </div>
+    );
   };
 
   const getPriorityColor = (priority) => {
@@ -331,6 +542,42 @@ export default function TaskDetailsModal({ task, onClose, onUpdate, onDelete }) 
               >
                 Close
               </button>
+            )}
+          </div>
+
+          {/* Comments Section */}
+          <div className="pt-6 border-t border-gray-200 mt-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Comments</h3>
+            
+            {/* Add Comment */}
+            <div className="mb-4">
+              <textarea
+                value={newComment}
+                onChange={(e) => setNewComment(e.target.value)}
+                placeholder="Add a comment..."
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                rows="3"
+              />
+              <button
+                onClick={handleAddComment}
+                disabled={!newComment.trim() || submittingComment}
+                className="mt-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed font-medium"
+              >
+                {submittingComment ? 'Posting...' : 'Post Comment'}
+              </button>
+            </div>
+
+            {/* Comments List */}
+            {loadingComments ? (
+              <div className="text-center py-8">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+              </div>
+            ) : comments.length > 0 ? (
+              <div className="space-y-2">
+                {comments.map((comment) => renderComment(comment))}
+              </div>
+            ) : (
+              <p className="text-gray-500 text-sm text-center py-8">No comments yet. Be the first to comment!</p>
             )}
           </div>
         </div>

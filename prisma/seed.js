@@ -21,6 +21,7 @@ async function main() {
       email: 'maninder@company.com',
       name: 'Maninder',
       passwordHash: hashedPassword,
+      role: 'admin',
     },
   });
 

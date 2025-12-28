@@ -18,7 +18,15 @@ export async function POST(request) {
     // Find the token in DB
     const storedToken = await prisma.refreshToken.findUnique({
       where: { hashedToken },
-      include: { user: true },
+      include: { 
+        user: {
+          select: {
+            id: true,
+            email: true,
+            name: true,
+          }
+        }
+      },
     });
 
     if (!storedToken) {

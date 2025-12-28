@@ -125,6 +125,8 @@ export function AuthProvider({ children }) {
           const data = await refreshResponse.json();
           localStorage.setItem('accessToken', data.accessToken);
           localStorage.setItem('refreshToken', data.refreshToken);
+          localStorage.setItem('user', JSON.stringify(data.user));
+          setUser(data.user);
 
           // Retry original request with new token
           return fetch(url, {
