@@ -7,6 +7,7 @@ import Link from 'next/link';
 import AddTaskModal from '@/components/AddTaskModal';
 import AddEventModal from '@/components/AddEventModal';
 import NotificationDropdown from '@/components/NotificationDropdown';
+import TaskDetailsModal from '@/components/TaskDetailsModal';
 
 export default function DashboardLayout({ children }) {
   const { user, loading, logout, fetchWithAuth } = useAuth();
@@ -16,6 +17,8 @@ export default function DashboardLayout({ children }) {
   const [showAddEvent, setShowAddEvent] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [selectedTaskId, setSelectedTaskId] = useState(null);
+  const [selectedTask, setSelectedTask] = useState(null);
 
   const isEventsPage = pathname === '/dashboard/events';
 
@@ -28,23 +31,35 @@ export default function DashboardLayout({ children }) {
   const fetchUnreadCount = useCallback(async () => {
     try {
       const response = await fetchWithAuth('/api/notifications');
+      if (response.status === 401) {
+        // Auth token expired, silently skip
+        return;
+      }
       const data = await response.json();
       if (response.ok) {
         setUnreadCount(data.unreadCount || 0);
       }
     } catch (error) {
-      console.error('Error fetching unread count:', error);
+      // Silently fail for notification fetching
+      console.log('Notification fetch skipped:', error.message);
     }
   }, [fetchWithAuth]);
 
   const checkReminders = useCallback(async () => {
     try {
-      await fetchWithAuth('/api/notifications/check-reminders', {
+      const response = await fetchWithAuth('/api/notifications/check-reminders', {
         method: 'POST',
       });
-      fetchUnreadCount(); // Refresh count after checking reminders
+      if (response.status === 401) {
+        // Auth token expired, silently skip
+        return;
+      }
+      if (response.ok) {
+        fetchUnreadCount(); // Refresh count after checking reminders
+      }
     } catch (error) {
-      console.error('Error checking reminders:', error);
+      // Silently fail for reminder checking
+      console.log('Reminder check skipped:', error.message);
     }
   }, [fetchWithAuth, fetchUnreadCount]);
 
@@ -75,6 +90,52 @@ export default function DashboardLayout({ children }) {
     window.addEventListener('refreshNotifications', handleRefreshNotifications);
     return () => window.removeEventListener('refreshNotifications', handleRefreshNotifications);
   }, [fetchUnreadCount]);
+
+  // Handle task click from notifications
+  const handleTaskClick = async (taskId) => {
+    try {
+      const response = await fetchWithAuth(`/api/tasks/${taskId}`);
+      if (response.ok) {
+        const data = await response.json();
+        setSelectedTask(data.task);
+        setSelectedTaskId(taskId);
+      }
+    } catch (error) {
+      console.error('Error fetching task:', error);
+    }
+  };
+
+  const handleTaskUpdate = async (taskId, updates) => {
+    try {
+      const response = await fetchWithAuth(`/api/tasks/${taskId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updates),
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setSelectedTask(data.task);
+        window.dispatchEvent(new Event('refreshTasks'));
+      }
+    } catch (error) {
+      console.error('Error updating task:', error);
+    }
+  };
+
+  const handleTaskDelete = async (taskId) => {
+    try {
+      const response = await fetchWithAuth(`/api/tasks/${taskId}`, {
+        method: 'DELETE',
+      });
+      if (response.ok) {
+        setSelectedTask(null);
+        setSelectedTaskId(null);
+        window.dispatchEvent(new Event('refreshTasks'));
+      }
+    } catch (error) {
+      console.error('Error deleting task:', error);
+    }
+  };
 
   if (loading) {
     return (
@@ -134,6 +195,7 @@ export default function DashboardLayout({ children }) {
                 <NotificationDropdown
                   onClose={() => setShowNotifications(false)}
                   onNotificationRead={fetchUnreadCount}
+                  onTaskClick={handleTaskClick}
                 />
               )}
             </div>
@@ -221,6 +283,19 @@ export default function DashboardLayout({ children }) {
           router.push(`/dashboard/events?refresh=${Date.now()}`);
         }}
       />
+
+      {/* Task Details Modal from Notification */}
+      {selectedTask && (
+        <TaskDetailsModal
+          task={selectedTask}
+          onClose={() => {
+            setSelectedTask(null);
+            setSelectedTaskId(null);
+          }}
+          onTaskUpdate={handleTaskUpdate}
+          onTaskDelete={handleTaskDelete}
+        />
+      )}
     </div>
   );
 }

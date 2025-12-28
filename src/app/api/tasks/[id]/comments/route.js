@@ -80,9 +80,15 @@ export async function POST(request, { params }) {
       return NextResponse.json({ error: 'Comment is too long (max 2000 characters)' }, { status: 400 });
     }
 
-    // Verify task exists
+    // Verify task exists and get details for notification
     const task = await prisma.task.findUnique({
       where: { id },
+      select: { 
+        id: true, 
+        title: true, 
+        assignedTo: true, 
+        createdBy: true 
+      },
     });
 
     if (!task) {
@@ -118,6 +124,50 @@ export async function POST(request, { params }) {
         },
       },
     });
+
+    // Create notifications for comment
+    const now = new Date();
+    const expiresAt = new Date(now.getTime() + 6 * 60 * 60 * 1000);
+    const notificationMessage = parentId 
+      ? `${user.name} replied to a comment on "${task.title}"`
+      : `${user.name} commented on "${task.title}"`;
+    
+    // Notify all assigned users except the commenter
+    const usersToNotify = new Set(task.assignedTo.filter(userId => userId !== user.id));
+    
+    // Also notify the creator if they're not the commenter
+    if (task.createdBy !== user.id) {
+      usersToNotify.add(task.createdBy);
+    }
+
+    // If it's a reply, notify the parent comment author
+    if (parentId) {
+      const parentComment = await prisma.comment.findUnique({
+        where: { id: parentId },
+        select: { authorId: true },
+      });
+      if (parentComment && parentComment.authorId !== user.id) {
+        usersToNotify.add(parentComment.authorId);
+      }
+    }
+
+    try {
+      await Promise.all(
+        Array.from(usersToNotify).map(userId =>
+          prisma.notification.create({
+            data: {
+              userId,
+              taskId: id,
+              type: 'comment',
+              message: notificationMessage,
+              expiresAt,
+            },
+          })
+        )
+      );
+    } catch (notifError) {
+      console.error('Error creating comment notifications:', notifError);
+    }
 
     return NextResponse.json({ comment }, { status: 201 });
   } catch (error) {

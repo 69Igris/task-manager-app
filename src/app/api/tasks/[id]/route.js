@@ -136,6 +136,46 @@ export async function PATCH(request, { params }) {
       select: { id: true, name: true, email: true },
     });
 
+    // Create notifications for status change (except for the user who made the change)
+    if (status !== task.status) {
+      const now = new Date();
+      const expiresAt = new Date(now.getTime() + 6 * 60 * 60 * 1000);
+      const statusMessages = {
+        'pending': 'is now pending',
+        'in-progress': 'is now in progress',
+        'completed': 'has been completed'
+      };
+      
+      await Promise.all(
+        updatedTask.assignedTo
+          .filter(userId => userId !== user.id) // Don't notify the person who made the change
+          .map(userId =>
+            prisma.notification.create({
+              data: {
+                userId,
+                taskId: updatedTask.id,
+                type: 'status_update',
+                message: `Task "${updatedTask.title}" ${statusMessages[status]}`,
+                expiresAt,
+              },
+            })
+          )
+      );
+
+      // Also notify the creator if they're not the one making the change and not in assignedTo
+      if (task.createdBy !== user.id && !updatedTask.assignedTo.includes(task.createdBy)) {
+        await prisma.notification.create({
+          data: {
+            userId: task.createdBy,
+            taskId: updatedTask.id,
+            type: 'status_update',
+            message: `Task "${updatedTask.title}" ${statusMessages[status]}`,
+            expiresAt,
+          },
+        });
+      }
+    }
+
     return NextResponse.json({ task: { ...updatedTask, assignedUsers } });
   } catch (error) {
     console.error('Error updating task:', error);

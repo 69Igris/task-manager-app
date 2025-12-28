@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 
-export default function NotificationDropdown({ onClose, onNotificationRead }) {
+export default function NotificationDropdown({ onClose, onNotificationRead, onTaskClick }) {
   const { fetchWithAuth } = useAuth();
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -36,6 +36,18 @@ export default function NotificationDropdown({ onClose, onNotificationRead }) {
       console.error('Error fetching notifications:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleNotificationClick = async (notification) => {
+    // Mark as read
+    if (!notification.isRead) {
+      await handleMarkAsRead(notification.id);
+    }
+    // Open the task
+    if (onTaskClick && notification.taskId) {
+      onTaskClick(notification.taskId);
+      onClose();
     }
   };
 
@@ -147,7 +159,7 @@ export default function NotificationDropdown({ onClose, onNotificationRead }) {
               {notifications.map((notification) => (
                 <div
                   key={notification.id}
-                  onClick={() => !notification.isRead && handleMarkAsRead(notification.id)}
+                  onClick={() => handleNotificationClick(notification)}
                   className={`px-4 py-3 hover:bg-gray-50 transition-colors cursor-pointer ${
                     !notification.isRead ? 'bg-blue-50' : ''
                   }`}
