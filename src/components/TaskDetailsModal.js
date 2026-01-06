@@ -10,6 +10,7 @@ export default function TaskDetailsModal({ task, onClose, onUpdate, onDelete }) 
   const { showToast } = useToast();
   const { showConfirm } = useConfirm();
   const [status, setStatus] = useState(task?.status || 'pending');
+  const [currentTask, setCurrentTask] = useState(task);
   const [loading, setLoading] = useState(false);
   const [comments, setComments] = useState([]);
   const [newComment, setNewComment] = useState('');
@@ -22,6 +23,7 @@ export default function TaskDetailsModal({ task, onClose, onUpdate, onDelete }) 
   useEffect(() => {
     if (task) {
       setStatus(task.status);
+      setCurrentTask(task);
       fetchComments();
     }
   }, [task]);
@@ -106,6 +108,8 @@ export default function TaskDetailsModal({ task, onClose, onUpdate, onDelete }) 
   };
 
   const handleDeleteComment = async (commentId) => {
+    console.log('Delete button clicked for comment:', commentId);
+    
     const confirmed = await showConfirm({
       title: 'Delete Comment',
       message: 'Are you sure you want to delete this comment?',
@@ -114,21 +118,29 @@ export default function TaskDetailsModal({ task, onClose, onUpdate, onDelete }) 
       type: 'danger',
     });
 
-    if (!confirmed) return;
+    if (!confirmed) {
+      console.log('Delete cancelled');
+      return;
+    }
 
+    console.log('Deleting comment:', commentId);
+    
     try {
       const response = await fetchWithAuth(`/api/tasks/${task.id}/comments/${commentId}`, {
         method: 'DELETE',
       });
       
       if (response.ok) {
+        console.log('Comment deleted successfully');
         await fetchComments();
         showToast('Comment deleted successfully', 'success');
       } else {
         const data = await response.json();
+        console.error('Delete failed:', data);
         throw new Error(data.error || 'Failed to delete comment');
       }
     } catch (error) {
+      console.error('Error deleting comment:', error);
       showToast(error.message || 'Failed to delete comment', 'error');
     }
   };
@@ -139,6 +151,7 @@ export default function TaskDetailsModal({ task, onClose, onUpdate, onDelete }) 
   const isAssignee = task.assignedTo?.includes(user?.id);
   const isOverdue = task.dueDate && new Date(task.dueDate) < new Date() && task.status !== 'completed';
   const canEdit = isCreator || (isAssignee && task.status !== 'completed');
+  const canComment = isCreator || isAssignee;
 
   const handleSave = async () => {
     // If status is being set to completed, show confirmation
@@ -156,23 +169,42 @@ export default function TaskDetailsModal({ task, onClose, onUpdate, onDelete }) 
 
     setLoading(true);
     try {
-      const response = await fetchWithAuth(`/api/tasks/${task.id}`, {
-        method: 'PATCH',
-        body: JSON.stringify({ status }),
-      });
+      // First, post the comment if there's one
+      if (newComment.trim()) {
+        const commentResponse = await fetchWithAuth(`/api/tasks/${task.id}/comments`, {
+          method: 'POST',
+          body: JSON.stringify({ content: newComment }),
+        });
+        
+        if (!commentResponse.ok) {
+          const commentData = await commentResponse.json();
+          throw new Error(commentData.error || 'Failed to add comment');
+        }
+        setNewComment('');
+        showToast('Comment added successfully', 'success');
+        await fetchComments();
+      }
 
-      const data = await response.json();
+      // Then update the status if it changed AND user has permission
+      if (status !== task.status && canEdit) {
+        const response = await fetchWithAuth(`/api/tasks/${task.id}`, {
+          method: 'PATCH',
+          body: JSON.stringify({ status }),
+        });
 
-      if (response.ok) {
-        showToast('Task updated successfully', 'success');
-        onUpdate(data.task);
-        onClose();
-      } else {
-        throw new Error(data.error || 'Failed to update task');
+        const data = await response.json();
+
+        if (response.ok) {
+          showToast('Task updated successfully', 'success');
+          setCurrentTask(data.task);
+          onUpdate(data.task);
+        } else {
+          throw new Error(data.error || 'Failed to update task');
+        }
       }
     } catch (error) {
-      console.error('Error updating task:', error);
-      showToast(error.message || 'Failed to update task', 'error');
+      console.error('Error saving changes:', error);
+      showToast(error.message || 'Failed to save changes', 'error');
     } finally {
       setLoading(false);
     }
@@ -257,8 +289,13 @@ export default function TaskDetailsModal({ task, onClose, onUpdate, onDelete }) 
             </div>
             {isAuthor && (
               <button
-                onClick={() => handleDeleteComment(comment.id)}
-                className="text-red-600 hover:text-red-800 text-sm"
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  handleDeleteComment(comment.id);
+                }}
+                className="px-2 py-1 text-red-600 hover:text-white hover:bg-red-600 border border-red-600 rounded text-xs font-semibold transition-colors"
               >
                 Delete
               </button>
@@ -331,7 +368,7 @@ export default function TaskDetailsModal({ task, onClose, onUpdate, onDelete }) 
 
   return (
     <div 
-      className="fixed inset-0 bg-gradient-to-br from-blue-600/95 via-indigo-600/95 to-purple-700/95 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center"
+      className="fixed inset-0 bg-gradient-to-br from-blue-600/95 via-indigo-600/95 to-purple-700/95 backdrop-blur-sm z-[110] flex items-end sm:items-center justify-center"
       onClick={onClose}
     >
       <div 
@@ -351,6 +388,76 @@ export default function TaskDetailsModal({ task, onClose, onUpdate, onDelete }) 
 
         {/* Content */}
         <div className="px-6 py-4 space-y-4">
+          {/* Assigned To */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Assigned To
+            </label>
+            <div className="space-y-2 border border-gray-300 rounded-lg p-3 bg-gray-50">
+              {task.assignedUsers && task.assignedUsers.length > 0 ? (
+                task.assignedUsers.map((assignedUser) => (
+                  <div
+                    key={assignedUser.id}
+                    className="flex items-center gap-3 p-2 rounded bg-blue-50 border border-blue-300"
+                  >
+                    <div className="flex-1">
+                      <div className="text-sm font-medium text-gray-900">{assignedUser.name}</div>
+                      <div className="text-xs text-gray-500">{assignedUser.email}</div>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <p className="text-sm text-gray-500">No assignees</p>
+              )}
+            </div>
+          </div>
+
+          {/* Created By */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Created By
+            </label>
+            <div className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-900">
+              {task.creator?.name || 'Unknown'} ({task.creator?.email || 'N/A'})
+            </div>
+          </div>
+
+          {/* Created Date and Due Date - Side by Side */}
+          <div className="grid grid-cols-2 gap-3">
+            {/* Created Date */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Created Date
+              </label>
+              <div className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-900 text-sm">
+                {formatDate(task.createdAt)}
+              </div>
+            </div>
+            
+            {/* Due Date */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Due Date
+              </label>
+              <div className={`w-full px-4 py-2 border rounded-lg text-sm ${
+                isOverdue ? 'bg-red-50 border-red-300 text-red-800 font-semibold' : 'bg-gray-50 border-gray-300 text-gray-900'
+              }`}>
+                {formatDate(task.dueDate)}
+                {isOverdue && ' ⚠️'}
+              </div>
+            </div>
+          </div>
+
+          {/* Priority */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Priority
+            </label>
+            <div className={`py-2 px-4 rounded-lg border-2 font-medium text-center ${getPriorityColor(task.priority)}`}>
+              {task.priority ? task.priority.toUpperCase() : 'MEDIUM'}
+            </div>
+          </div>
+
           {/* Equipment */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -393,103 +500,62 @@ export default function TaskDetailsModal({ task, onClose, onUpdate, onDelete }) 
             </div>
           )}
 
-          {/* Assigned To */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Assigned To
-            </label>
-            <div className="space-y-2 border border-gray-300 rounded-lg p-3 bg-gray-50">
-              {task.assignedUsers && task.assignedUsers.length > 0 ? (
-                task.assignedUsers.map((assignedUser) => (
-                  <div
-                    key={assignedUser.id}
-                    className="flex items-center gap-3 p-2 rounded bg-blue-50 border border-blue-300"
-                  >
-                    <div className="flex-1">
-                      <div className="text-sm font-medium text-gray-900">{assignedUser.name}</div>
-                      <div className="text-xs text-gray-500">{assignedUser.email}</div>
-                    </div>
-                  </div>
-                ))
-              ) : (
-                <p className="text-sm text-gray-500">No assignees</p>
-              )}
-            </div>
-          </div>
-
-          {/* Created By */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Created By
-            </label>
-            <div className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-900">
-              {task.creator?.name || 'Unknown'} ({task.creator?.email || 'N/A'})
-            </div>
-          </div>
-
-          {/* Status and Due Date - Side by Side */}
-          <div className="grid grid-cols-2 gap-3">
-            {/* Status */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Status
-              </label>
-              {canEdit ? (
-                <select
-                  value={status}
-                  onChange={(e) => setStatus(e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                >
-                  <option value="pending">Pending</option>
-                  <option value="in-progress">In Progress</option>
-                  <option value="completed">Completed</option>
-                </select>
-              ) : (
-                <div className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-900">
-                  {task.status.replace('-', ' ').toUpperCase()}
-                </div>
-              )}
-              {!canEdit && (
-                <p className="text-xs text-gray-500 mt-1">
-                  {task.status === 'completed' 
-                    ? 'Only the creator can modify completed tasks'
-                    : 'You do not have permission to edit this task'}
-                </p>
-              )}
-            </div>
+          {/* Comments Section */}
+          <div className="pt-6 border-t border-gray-200 mt-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Comments</h3>
             
-            {/* Due Date */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Due Date
-              </label>
-              <div className={`w-full px-4 py-2 border rounded-lg text-sm ${
-                isOverdue ? 'bg-red-50 border-red-300 text-red-800 font-semibold' : 'bg-gray-50 border-gray-300 text-gray-900'
-              }`}>
-                {formatDate(task.dueDate)}
-                {isOverdue && ' ⚠️'}
+            {/* Add Comment */}
+            <div className="mb-4">
+              <textarea
+                value={newComment}
+                onChange={(e) => setNewComment(e.target.value)}
+                placeholder="Add a comment..."
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                rows="3"
+              />
+            </div>
+
+            {/* Comments List */}
+            {loadingComments ? (
+              <div className="text-center py-8">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
               </div>
-            </div>
+            ) : comments.length > 0 ? (
+              <div className="space-y-2">
+                {comments.map((comment) => renderComment(comment))}
+              </div>
+            ) : (
+              <p className="text-gray-500 text-sm text-center py-8">No comments yet. Be the first to comment!</p>
+            )}
           </div>
 
-          {/* Priority */}
-          <div>
+          {/* Status */}
+          <div className="pt-6 border-t border-gray-200 mt-6">
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Priority
+              Status
             </label>
-            <div className={`py-2 px-4 rounded-lg border-2 font-medium text-center ${getPriorityColor(task.priority)}`}>
-              {task.priority ? task.priority.toUpperCase() : 'MEDIUM'}
-            </div>
-          </div>
-
-          {/* Created Date */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Created Date
-            </label>
-            <div className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-900 text-sm">
-              {formatDate(task.createdAt)}
-            </div>
+            {canEdit ? (
+              <select
+                value={status}
+                onChange={(e) => setStatus(e.target.value)}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              >
+                <option value="pending">Pending</option>
+                <option value="in-progress">In Progress</option>
+                <option value="completed">Completed</option>
+              </select>
+            ) : (
+              <div className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-900">
+                {task.status.replace('-', ' ').toUpperCase()}
+              </div>
+            )}
+            {!canEdit && (
+              <p className="text-xs text-gray-500 mt-1">
+                {task.status === 'completed' 
+                  ? 'Only the creator can modify completed tasks'
+                  : 'You do not have permission to edit this task'}
+              </p>
+            )}
           </div>
 
           {/* Completed At */}
@@ -520,13 +586,13 @@ export default function TaskDetailsModal({ task, onClose, onUpdate, onDelete }) 
                 {loading ? 'Deleting...' : 'Delete'}
               </button>
             )}
-            {canEdit && (
+            {(canEdit || canComment) && (
               <button
                 type="button"
                 onClick={handleSave}
-                disabled={loading || status === task.status}
+                disabled={loading || ((status === currentTask.status || !canEdit) && !newComment.trim())}
                 className={`flex-1 px-4 py-3 rounded-lg font-medium text-white ${
-                  loading || status === task.status
+                  loading || ((status === currentTask.status || !canEdit) && !newComment.trim())
                     ? 'bg-gray-400 cursor-not-allowed'
                     : 'bg-blue-600 hover:bg-blue-700'
                 }`}
@@ -534,7 +600,7 @@ export default function TaskDetailsModal({ task, onClose, onUpdate, onDelete }) 
                 {loading ? 'Saving...' : 'Save Changes'}
               </button>
             )}
-            {!canEdit && !isCreator && (
+            {!canEdit && !canComment && (
               <button
                 type="button"
                 onClick={onClose}
@@ -542,42 +608,6 @@ export default function TaskDetailsModal({ task, onClose, onUpdate, onDelete }) 
               >
                 Close
               </button>
-            )}
-          </div>
-
-          {/* Comments Section */}
-          <div className="pt-6 border-t border-gray-200 mt-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Comments</h3>
-            
-            {/* Add Comment */}
-            <div className="mb-4">
-              <textarea
-                value={newComment}
-                onChange={(e) => setNewComment(e.target.value)}
-                placeholder="Add a comment..."
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
-                rows="3"
-              />
-              <button
-                onClick={handleAddComment}
-                disabled={!newComment.trim() || submittingComment}
-                className="mt-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed font-medium"
-              >
-                {submittingComment ? 'Posting...' : 'Post Comment'}
-              </button>
-            </div>
-
-            {/* Comments List */}
-            {loadingComments ? (
-              <div className="text-center py-8">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-              </div>
-            ) : comments.length > 0 ? (
-              <div className="space-y-2">
-                {comments.map((comment) => renderComment(comment))}
-              </div>
-            ) : (
-              <p className="text-gray-500 text-sm text-center py-8">No comments yet. Be the first to comment!</p>
             )}
           </div>
         </div>

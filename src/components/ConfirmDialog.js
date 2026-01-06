@@ -52,7 +52,7 @@ export function ConfirmProvider({ children }) {
       {children}
       {confirmState.isOpen && (
         <div 
-          className="fixed inset-0 z-50 overflow-y-auto"
+          className="fixed inset-0 z-[120] overflow-y-auto"
           onClick={(e) => {
             // Only close if clicking directly on the backdrop, not on modal content
             if (e.target === e.currentTarget) {
