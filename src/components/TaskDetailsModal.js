@@ -504,8 +504,21 @@ export default function TaskDetailsModal({ task, onClose, onUpdate, onDelete }) 
           <div className="pt-6 border-t border-gray-200 mt-6">
             <h3 className="text-lg font-semibold text-gray-900 mb-4">Comments</h3>
             
+            {/* Comments List */}
+            {loadingComments ? (
+              <div className="text-center py-8">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+              </div>
+            ) : comments.length > 0 ? (
+              <div className="space-y-2 mb-4">
+                {comments.map((comment) => renderComment(comment))}
+              </div>
+            ) : (
+              <p className="text-gray-500 text-sm text-center py-8 mb-4">No comments yet. Be the first to comment!</p>
+            )}
+
             {/* Add Comment */}
-            <div className="mb-4">
+            <div className="mt-4">
               <textarea
                 value={newComment}
                 onChange={(e) => setNewComment(e.target.value)}
@@ -514,19 +527,6 @@ export default function TaskDetailsModal({ task, onClose, onUpdate, onDelete }) 
                 rows="3"
               />
             </div>
-
-            {/* Comments List */}
-            {loadingComments ? (
-              <div className="text-center py-8">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-              </div>
-            ) : comments.length > 0 ? (
-              <div className="space-y-2">
-                {comments.map((comment) => renderComment(comment))}
-              </div>
-            ) : (
-              <p className="text-gray-500 text-sm text-center py-8">No comments yet. Be the first to comment!</p>
-            )}
           </div>
 
           {/* Status */}

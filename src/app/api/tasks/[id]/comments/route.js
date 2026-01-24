@@ -48,7 +48,7 @@ export async function GET(request, { params }) {
           orderBy: { createdAt: 'asc' },
         },
       },
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: 'asc' },
     });
 
     return NextResponse.json({ comments });
