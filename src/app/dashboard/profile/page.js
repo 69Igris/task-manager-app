@@ -250,17 +250,25 @@ export default function ProfilePage() {
               <div key={index} className="flex-1 flex flex-col items-center">
                 <div className="w-full flex items-end justify-center h-40 pb-2">
                   <div 
-                    className="w-full bg-blue-500 rounded-t-lg transition-all duration-500 hover:bg-blue-600 relative group"
+                    className="w-full bg-blue-500 rounded-t-lg transition-all duration-500 hover:bg-blue-600 relative group flex items-center justify-center"
                     style={{ height: `${height}%`, minHeight: day.count > 0 ? '8px' : '0' }}
                   >
                     {day.count > 0 && (
-                      <div className="absolute -top-6 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
-                        {day.count} task{day.count !== 1 ? 's' : ''}
-                      </div>
+                      <>
+                        <span className="text-white font-bold text-xl">{day.count}</span>
+                        <div className="absolute -top-6 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+                          {day.count} task{day.count !== 1 ? 's' : ''}
+                        </div>
+                      </>
                     )}
                   </div>
                 </div>
-                <div className="text-xs text-gray-600 mt-2 font-medium">{day.day}</div>
+                <div className="text-center mt-2">
+                  <div className="text-xs text-gray-600 font-medium">{day.day}</div>
+                  <div className="text-xs text-gray-400 mt-0.5">
+                    {`${day.date.getDate()}/${day.date.getMonth() + 1}/${day.date.getFullYear().toString().slice(-2)}`}
+                  </div>
+                </div>
               </div>
             );
           })}
