@@ -150,10 +150,10 @@ export default function DashboardLayout({ children }) {
   }
 
   const navItems = [
-    { path: '/dashboard', label: 'Dashboard', icon: '📋' },
-    { path: '/dashboard/team-tasks', label: 'Team Tasks', icon: '👥' },
-    { path: '/dashboard/events', label: 'Events', icon: '📅' },
-    { path: '/dashboard/export', label: 'File Save', icon: '💾' },
+    { path: '/dashboard', label: 'Tasks', icon: '📋' },
+    { path: '/dashboard/events', label: 'Calendar', icon: '📅' },
+    { path: '/dashboard/team-tasks', label: 'Team', icon: '👥' },
+    { path: '/dashboard/profile', label: 'Mine', icon: '👤' },
   ];
 
   return (
