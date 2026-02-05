@@ -7,8 +7,11 @@ import Link from 'next/link';
 export default function ProfilePage() {
   const { user, fetchWithAuth } = useAuth();
   const [stats, setStats] = useState({
-    completedTasks: 0,
+    totalTasks: 0,
     pendingTasks: 0,
+    inProgressTasks: 0,
+    completedTasks: 0,
+    overdueTasks: 0,
     dailyCompletion: [],
     upcomingTasks: []
   });
@@ -34,27 +37,38 @@ export default function ProfilePage() {
       const response = await fetchWithAuth('/api/tasks?myTasks=true');
       const data = await response.json();
       
-      if (response.ok) {
-        const tasks = data.tasks || [];
-        setAllTasks(tasks);
-        
-        // Calculate completed and pending tasks (overall)
-        const completed = tasks.filter(t => t.status === 'completed').length;
-        const pending = tasks.filter(t => t.status === 'pending' || t.status === 'in-progress').length;
-        
-        // Calculate daily completion for the current week
-        const dailyCompletion = calculateDailyCompletion(tasks, 0);
-        
-        // Get upcoming tasks in next 7 days
-        const upcoming = getUpcomingTasks(tasks);
-        
-        setStats({
-          completedTasks: completed,
-          pendingTasks: pending,
-          dailyCompletion,
-          upcomingTasks: upcoming
-        });
-      }
+        if (response.ok) {
+          const tasks = data.tasks || [];
+          setAllTasks(tasks);
+          
+          // Calculate overall task statistics
+          const total = tasks.length;
+          const completed = tasks.filter(t => t.status === 'completed').length;
+          const pending = tasks.filter(t => t.status === 'pending').length;
+          const inProgress = tasks.filter(t => t.status === 'in-progress').length;
+          const overdue = tasks.filter(t => {
+            if (!t.dueDate || t.status === 'completed') return false;
+            const dueDate = new Date(t.dueDate);
+            dueDate.setHours(23, 59, 59, 999); // Set to end of day
+            return dueDate < new Date();
+          }).length;
+          
+          // Calculate daily completion for the current week
+          const dailyCompletion = calculateDailyCompletion(tasks, 0);
+          
+          // Get upcoming tasks in next 7 days
+          const upcoming = getUpcomingTasks(tasks);
+          
+          setStats({
+            totalTasks: total,
+            completedTasks: completed,
+            pendingTasks: pending,
+            inProgressTasks: inProgress,
+            overdueTasks: overdue,
+            dailyCompletion,
+            upcomingTasks: upcoming
+          });
+        }
     } catch (error) {
       console.error('Error fetching stats:', error);
     } finally {
@@ -73,6 +87,7 @@ export default function ProfilePage() {
   const calculateDailyCompletion = (tasks, offset = 0) => {
     const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
     const today = new Date();
+    today.setHours(0, 0, 0, 0);
     const startDate = new Date(today);
     startDate.setDate(startDate.getDate() + (offset * 7));
     
@@ -87,16 +102,32 @@ export default function ProfilePage() {
       const nextDay = new Date(date);
       nextDay.setDate(nextDay.getDate() + 1);
       
-      const completedOnDay = tasks.filter(task => {
-        if (!task.completedAt) return false;
-        const completedDate = new Date(task.completedAt);
-        return completedDate >= date && completedDate < nextDay;
+      const tasksOnDay = tasks.filter(task => {
+        if (!task.dueDate) return false;
+        const taskDate = new Date(task.dueDate);
+        taskDate.setHours(0, 0, 0, 0);
+        return taskDate.getTime() === date.getTime();
+      });
+
+      const completed = tasksOnDay.filter(t => t.status === 'completed').length;
+      const inProgress = tasksOnDay.filter(t => t.status === 'in-progress').length;
+      const pending = tasksOnDay.filter(t => t.status === 'pending').length;
+      const overdue = tasksOnDay.filter(t => {
+        const dueDate = new Date(t.dueDate);
+        dueDate.setHours(23, 59, 59, 999);
+        return t.status !== 'completed' && dueDate < today;
       }).length;
       
       dailyData.push({
         day: days[date.getDay()],
         date: date,
-        count: completedOnDay
+        counts: {
+          completed,
+          inProgress,
+          pending,
+          overdue
+        },
+        total: tasksOnDay.length
       });
     }
     
@@ -127,8 +158,9 @@ export default function ProfilePage() {
   };
 
   const getMaxCount = () => {
-    const max = Math.max(...stats.dailyCompletion.map(d => d.count));
-    return max === 0 ? 1 : max;
+    const totalCounts = stats.dailyCompletion.map(d => d.total || 0);
+    const max = Math.max(...totalCounts);
+    return max === 0 || max === -Infinity ? 1 : max;
   };
 
   const getWeekDateRange = () => {
@@ -183,14 +215,26 @@ export default function ProfilePage() {
       {/* Tasks Overview */}
       <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm">
         <h3 className="text-lg font-bold text-gray-900 mb-4">Tasks Overview</h3>
-        <div className="grid grid-cols-2 gap-4">
-          <div className="bg-blue-50 rounded-xl p-6 text-center border border-blue-100">
-            <div className="text-4xl font-bold text-gray-900 mb-2">{stats.completedTasks}</div>
-            <div className="text-sm text-gray-600">Completed Tasks</div>
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+          <div className="bg-gray-50 rounded-xl p-4 text-center border border-gray-100 shadow-sm">
+            <div className="text-3xl font-bold text-gray-900 mb-1">{stats.totalTasks}</div>
+            <div className="text-[10px] text-gray-500 font-bold uppercase tracking-wider">Total</div>
           </div>
-          <div className="bg-purple-50 rounded-xl p-6 text-center border border-purple-100">
-            <div className="text-4xl font-bold text-gray-900 mb-2">{stats.pendingTasks}</div>
-            <div className="text-sm text-gray-600">Pending Tasks</div>
+          <div className="bg-amber-50 rounded-xl p-4 text-center border border-amber-100 shadow-sm">
+            <div className="text-3xl font-bold text-amber-600 mb-1">{stats.pendingTasks}</div>
+            <div className="text-[10px] text-amber-600 font-bold uppercase tracking-wider">Pending</div>
+          </div>
+          <div className="bg-blue-50 rounded-xl p-4 text-center border border-blue-100 shadow-sm">
+            <div className="text-3xl font-bold text-blue-600 mb-1">{stats.inProgressTasks}</div>
+            <div className="text-[10px] text-blue-600 font-bold uppercase tracking-wider">In Progress</div>
+          </div>
+          <div className="bg-green-50 rounded-xl p-4 text-center border border-green-100 shadow-sm">
+            <div className="text-3xl font-bold text-green-600 mb-1">{stats.completedTasks}</div>
+            <div className="text-[10px] text-green-600 font-bold uppercase tracking-wider">Completed</div>
+          </div>
+          <div className="bg-red-50 rounded-xl p-4 text-center border border-red-100 shadow-sm">
+            <div className="text-3xl font-bold text-red-600 mb-1">{stats.overdueTasks}</div>
+            <div className="text-[10px] text-red-600 font-bold uppercase tracking-wider">Overdue</div>
           </div>
         </div>
       </div>
@@ -244,29 +288,60 @@ export default function ProfilePage() {
         <div className="relative h-48 flex items-end justify-between gap-2 pt-4">
           {stats.dailyCompletion.map((day, index) => {
             const maxCount = getMaxCount();
-            const height = (day.count / maxCount) * 100;
+            const totalHeight = day.total > 0 ? (day.total / maxCount) * 100 : 0;
             
             return (
-              <div key={index} className="flex-1 flex flex-col items-center">
-                <div className="w-full flex items-end justify-center h-40 pb-2">
-                  <div 
-                    className="w-full bg-blue-500 rounded-t-lg transition-all duration-500 hover:bg-blue-600 relative group flex items-center justify-center"
-                    style={{ height: `${height}%`, minHeight: day.count > 0 ? '8px' : '0' }}
-                  >
-                    {day.count > 0 && (
-                      <>
-                        <span className="text-white font-bold text-xl">{day.count}</span>
-                        <div className="absolute -top-6 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
-                          {day.count} task{day.count !== 1 ? 's' : ''}
-                        </div>
-                      </>
-                    )}
+              <div key={index} className="flex-1 flex flex-col items-center group relative">
+                {/* Stacked Bar Container */}
+                <div className="w-full flex flex-col-reverse items-center justify-start h-40 pb-2">
+                  {/* Completed Segment */}
+                  {day.counts?.completed > 0 && (
+                    <div 
+                      className="w-full bg-green-500 transition-all duration-500 hover:brightness-110 relative"
+                      style={{ height: `${(day.counts.completed / (day.total || 1)) * totalHeight}%` }}
+                    />
+                  )}
+                  {/* In Progress Segment */}
+                  {day.counts?.inProgress > 0 && (
+                    <div 
+                      className="w-full bg-blue-500 transition-all duration-500 hover:brightness-110 relative"
+                      style={{ height: `${(day.counts.inProgress / (day.total || 1)) * totalHeight}%` }}
+                    />
+                  )}
+                  {/* Pending Segment */}
+                  {day.counts?.pending > 0 && (
+                    <div 
+                      className="w-full bg-amber-500 transition-all duration-500 hover:brightness-110 relative"
+                      style={{ height: `${(day.counts.pending / (day.total || 1)) * totalHeight}%` }}
+                    />
+                  )}
+                  {/* Overdue Segment */}
+                  {day.counts?.overdue > 0 && (
+                    <div 
+                      className="w-full bg-red-500 transition-all duration-500 hover:brightness-110 relative rounded-t-sm"
+                      style={{ height: `${(day.counts.overdue / (day.total || 1)) * totalHeight}%` }}
+                    />
+                  )}
+
+                  {/* Tooltip on hover */}
+                  <div className="absolute -top-10 left-1/2 transform -translate-x-1/2 bg-gray-900 text-white text-[10px] p-2 rounded shadow-xl opacity-0 group-hover:opacity-100 transition-opacity z-10 whitespace-nowrap pointer-events-none">
+                    <div className="font-bold mb-1 border-b border-gray-700 pb-1">{day.total || 0} Total Tasks</div>
+                    {day.counts?.completed > 0 && <div className="text-green-400">● {day.counts.completed} Done</div>}
+                    {day.counts?.inProgress > 0 && <div className="text-blue-400">● {day.counts.inProgress} Doing</div>}
+                    {day.counts?.pending > 0 && <div className="text-amber-400">● {day.counts.pending} To Do</div>}
+                    {day.counts?.overdue > 0 && <div className="text-red-400">● {day.counts.overdue} Overdue</div>}
                   </div>
+
+                  {/* Empty state marker if total is 0 */}
+                  {day.total === 0 && (
+                    <div className="w-1 h-1 bg-gray-200 rounded-full mb-1" />
+                  )}
                 </div>
+                
                 <div className="text-center mt-2">
-                  <div className="text-xs text-gray-600 font-medium">{day.day}</div>
-                  <div className="text-xs text-gray-400 mt-0.5">
-                    {`${day.date.getDate()}/${day.date.getMonth() + 1}/${day.date.getFullYear().toString().slice(-2)}`}
+                  <div className="text-[10px] text-gray-600 font-bold uppercase tracking-tight">{day.day}</div>
+                  <div className="text-[9px] text-gray-400 mt-0.5">
+                    {`${day.date.getDate()}/${day.date.getMonth() + 1}`}
                   </div>
                 </div>
               </div>
@@ -274,9 +349,29 @@ export default function ProfilePage() {
           })}
         </div>
         
-        <div className="flex items-center justify-center mt-4 pt-4 border-t border-gray-100">
-          <div className="text-xs text-gray-500">
-            {stats.dailyCompletion.reduce((sum, d) => sum + d.count, 0)} tasks completed this week
+        {/* Legend */}
+        <div className="flex items-center justify-center gap-4 mt-6 pt-4 border-t border-gray-50 flex-wrap">
+          <div className="flex items-center gap-1.5">
+            <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+            <span className="text-[10px] font-medium text-gray-500 uppercase tracking-wider">Done</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+            <span className="text-[10px] font-medium text-gray-500 uppercase tracking-wider">Doing</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <div className="w-2 h-2 bg-amber-500 rounded-full"></div>
+            <span className="text-[10px] font-medium text-gray-500 uppercase tracking-wider">To Do</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <div className="w-2 h-2 bg-red-500 rounded-full"></div>
+            <span className="text-[10px] font-medium text-gray-500 uppercase tracking-wider">Overdue</span>
+          </div>
+        </div>
+
+        <div className="flex items-center justify-center mt-2">
+          <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+            {stats.dailyCompletion.reduce((sum, d) => sum + (d.total || 0), 0)} Tasks Scheduled This Week
           </div>
         </div>
       </div>
