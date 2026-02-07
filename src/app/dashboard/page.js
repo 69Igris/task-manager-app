@@ -34,11 +34,15 @@ export default function DashboardPage() {
     };
     window.addEventListener('refreshTasks', handleRefresh);
     return () => window.removeEventListener('refreshTasks', handleRefresh);
-  }, []);
+  }, [searchParams]);
 
   const fetchMyTasks = async () => {
     try {
-      const response = await fetchWithAuth('/api/tasks?myTasks=true');
+      // Check if we should fetch tasks created by the user instead of assigned to them
+      const createdByMe = searchParams.get('createdByMe') === 'true';
+      const queryParam = createdByMe ? 'createdByMe=true' : 'myTasks=true';
+      
+      const response = await fetchWithAuth(`/api/tasks?${queryParam}`);
       const data = await response.json();
       
       if (response.ok) {
@@ -135,8 +139,14 @@ export default function DashboardPage() {
       <div className="sticky top-0 z-10 bg-white border-b border-gray-200 shadow-sm">
         {/* Page Title */}
         <div className="px-4 pt-4 pb-3">
-          <h2 className="text-2xl font-bold text-gray-900">My Tasks</h2>
-          <p className="text-sm text-gray-600 mt-1">Tasks assigned to you</p>
+          <h2 className="text-2xl font-bold text-gray-900">
+            {searchParams.get('createdByMe') === 'true' ? 'Tasks Assigned by Me' : 'My Tasks'}
+          </h2>
+          <p className="text-sm text-gray-600 mt-1">
+            {searchParams.get('createdByMe') === 'true' 
+              ? 'Tasks you have assigned to others' 
+              : 'Tasks assigned to you'}
+          </p>
         </div>
 
         {/* Filters */}

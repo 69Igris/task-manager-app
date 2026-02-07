@@ -13,6 +13,7 @@ export async function GET(request) {
 
     const { searchParams } = new URL(request.url);
     const myTasks = searchParams.get('myTasks'); // Filter for current user's tasks
+    const createdByMe = searchParams.get('createdByMe'); // Filter for tasks created by user
     const status = searchParams.get('status');
     const startDate = searchParams.get('startDate');
     const endDate = searchParams.get('endDate');
@@ -22,6 +23,11 @@ export async function GET(request) {
     // Filter by assigned user
     if (myTasks === 'true') {
       where.assignedTo = { has: user.id };
+    }
+
+    // Filter by created by user
+    if (createdByMe === 'true') {
+      where.createdBy = user.id;
     }
 
     // Filter by status

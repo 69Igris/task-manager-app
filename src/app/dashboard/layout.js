@@ -154,6 +154,7 @@ export default function DashboardLayout({ children }) {
     { path: '/dashboard/events', label: 'Calendar', icon: '📅' },
     { path: '/dashboard/team-tasks', label: 'Team', icon: '👥' },
     { path: '/dashboard/profile', label: 'Mine', icon: '👤' },
+    { path: '/dashboard/assigned-by-me', label: 'Assigned', icon: '📝' },
   ];
 
   return (
@@ -230,7 +231,7 @@ export default function DashboardLayout({ children }) {
 
       {/* Bottom Navigation */}
       <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-30 shadow-2xl">
-        <div className="grid grid-cols-4 px-2">
+        <div className="grid grid-cols-5 px-2">
           {navItems.map((item) => {
             const isActive = pathname === item.path;
             return (
