@@ -216,26 +216,36 @@ export default function ProfilePage() {
       <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm">
         <h3 className="text-lg font-bold text-gray-900 mb-4">Tasks Overview</h3>
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-          <div className="bg-gray-50 rounded-xl p-4 text-center border border-gray-100 shadow-sm">
-            <div className="text-3xl font-bold text-gray-900 mb-1">{stats.totalTasks}</div>
-            <div className="text-[10px] text-gray-500 font-bold uppercase tracking-wider">Total</div>
-          </div>
-          <div className="bg-amber-50 rounded-xl p-4 text-center border border-amber-100 shadow-sm">
-            <div className="text-3xl font-bold text-amber-600 mb-1">{stats.pendingTasks}</div>
-            <div className="text-[10px] text-amber-600 font-bold uppercase tracking-wider">Pending</div>
-          </div>
-          <div className="bg-blue-50 rounded-xl p-4 text-center border border-blue-100 shadow-sm">
-            <div className="text-3xl font-bold text-blue-600 mb-1">{stats.inProgressTasks}</div>
-            <div className="text-[10px] text-blue-600 font-bold uppercase tracking-wider">In Progress</div>
-          </div>
-          <div className="bg-green-50 rounded-xl p-4 text-center border border-green-100 shadow-sm">
-            <div className="text-3xl font-bold text-green-600 mb-1">{stats.completedTasks}</div>
-            <div className="text-[10px] text-green-600 font-bold uppercase tracking-wider">Completed</div>
-          </div>
-          <div className="bg-red-50 rounded-xl p-4 text-center border border-red-100 shadow-sm">
-            <div className="text-3xl font-bold text-red-600 mb-1">{stats.overdueTasks}</div>
-            <div className="text-[10px] text-red-600 font-bold uppercase tracking-wider">Overdue</div>
-          </div>
+          <Link href="/dashboard?filter=all" className="block">
+            <div className="bg-gray-50 rounded-xl p-4 text-center border border-gray-100 shadow-sm hover:shadow-md hover:scale-105 transition-all cursor-pointer">
+              <div className="text-3xl font-bold text-gray-900 mb-1">{stats.totalTasks}</div>
+              <div className="text-[10px] text-gray-500 font-bold uppercase tracking-wider">Total</div>
+            </div>
+          </Link>
+          <Link href="/dashboard?filter=pending" className="block">
+            <div className="bg-amber-50 rounded-xl p-4 text-center border border-amber-100 shadow-sm hover:shadow-md hover:scale-105 transition-all cursor-pointer">
+              <div className="text-3xl font-bold text-amber-600 mb-1">{stats.pendingTasks}</div>
+              <div className="text-[10px] text-amber-600 font-bold uppercase tracking-wider">Pending</div>
+            </div>
+          </Link>
+          <Link href="/dashboard?filter=in-progress" className="block">
+            <div className="bg-blue-50 rounded-xl p-4 text-center border border-blue-100 shadow-sm hover:shadow-md hover:scale-105 transition-all cursor-pointer">
+              <div className="text-3xl font-bold text-blue-600 mb-1">{stats.inProgressTasks}</div>
+              <div className="text-[10px] text-blue-600 font-bold uppercase tracking-wider">In Progress</div>
+            </div>
+          </Link>
+          <Link href="/dashboard?filter=completed" className="block">
+            <div className="bg-green-50 rounded-xl p-4 text-center border border-green-100 shadow-sm hover:shadow-md hover:scale-105 transition-all cursor-pointer">
+              <div className="text-3xl font-bold text-green-600 mb-1">{stats.completedTasks}</div>
+              <div className="text-[10px] text-green-600 font-bold uppercase tracking-wider">Completed</div>
+            </div>
+          </Link>
+          <Link href="/dashboard?filter=overdue" className="block">
+            <div className="bg-red-50 rounded-xl p-4 text-center border border-red-100 shadow-sm hover:shadow-md hover:scale-105 transition-all cursor-pointer">
+              <div className="text-3xl font-bold text-red-600 mb-1">{stats.overdueTasks}</div>
+              <div className="text-[10px] text-red-600 font-bold uppercase tracking-wider">Overdue</div>
+            </div>
+          </Link>
         </div>
       </div>
 

@@ -4,15 +4,25 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/components/Toast';
 import TaskDetailsModal from '@/components/TaskDetailsModal';
 import { useState, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 
 export default function DashboardPage() {
   const { user, fetchWithAuth } = useAuth();
   const { showToast } = useToast();
+  const searchParams = useSearchParams();
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('all'); // all, pending, in-progress, completed, overdue
   const [selectedDate, setSelectedDate] = useState('');
   const [selectedTask, setSelectedTask] = useState(null);
+
+  // Handle filter from URL params
+  useEffect(() => {
+    const filterParam = searchParams.get('filter');
+    if (filterParam && ['all', 'pending', 'in-progress', 'completed', 'overdue'].includes(filterParam)) {
+      setFilter(filterParam);
+    }
+  }, [searchParams]);
 
   useEffect(() => {
     fetchMyTasks();
