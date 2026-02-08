@@ -41,7 +41,7 @@ export function AuthProvider({ children }) {
       localStorage.setItem('user', JSON.stringify(data.user));
       
       setUser(data.user);
-      router.push('/dashboard');
+      router.push('/dashboard/profile');
       
       return { success: true };
     } catch (error) {

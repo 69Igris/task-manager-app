@@ -4,12 +4,13 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/components/Toast';
 import TaskDetailsModal from '@/components/TaskDetailsModal';
 import { useState, useEffect } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter } from 'next/navigation';
 
 export default function DashboardPage() {
   const { user, fetchWithAuth } = useAuth();
   const { showToast } = useToast();
   const searchParams = useSearchParams();
+  const router = useRouter();
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('all'); // all, pending, in-progress, completed, overdue
@@ -22,7 +23,7 @@ export default function DashboardPage() {
     if (filterParam && ['all', 'pending', 'in-progress', 'completed', 'overdue'].includes(filterParam)) {
       setFilter(filterParam);
     }
-  }, [searchParams]);
+  }, []);
 
   useEffect(() => {
     fetchMyTasks();
@@ -34,7 +35,7 @@ export default function DashboardPage() {
     };
     window.addEventListener('refreshTasks', handleRefresh);
     return () => window.removeEventListener('refreshTasks', handleRefresh);
-  }, [searchParams]);
+  }, []);
 
   const fetchMyTasks = async () => {
     try {
