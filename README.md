@@ -1,181 +1,116 @@
-# Task Manager - Complete Full-Stack Application
+# Task Manager
 
-A modern, production-ready task management system built with Next.js 16, MongoDB, Prisma, and JWT authentication. Features role-based access control (RBAC), real-time updates, toast notifications, and PWA support.
+Task Manager is a full-stack Next.js app for managing equipment-related tasks, comments, events, and in-app notifications.
 
-## 🚀 Features
+## Current Project Status
 
-### Backend (API)
-- **Authentication System** - JWT access tokens (15min) + rotating refresh tokens (7 days)
-- **RBAC** - 4 roles (Worker, Manager, Supervisor, Admin) with hierarchical permissions
-- **Project Management** - Full CRUD with role-based visibility
-- **Task Management** - Status tracking, priority levels, assignment system
-- **Comments System** - Add comments with author tracking
-- **User Management** - Admin-only user role updates
+The project is currently functional end-to-end with:
 
-### Frontend (UI)
-- **Modern Design** - Tailwind CSS, responsive, gradient backgrounds
-- **Authentication** - Login/register with demo user quick-fill buttons
-- **Dashboard** - Stats overview, projects grid, my tasks section
-- **Project Pages** - Full task management, inline forms, comments
-- **Toast Notifications** - Success/error feedback for all actions
-- **PWA Support** - Installable, offline-capable with service worker
+- JWT authentication with access + refresh token flow
+- User registration and login
+- Task lifecycle management (pending, in-progress, completed)
+- Task assignment (up to 2 assignees per task)
+- Nested comments and replies on tasks
+- Events calendar management
+- In-app notifications + mark-as-read
+- PWA support (manifest + service worker)
+- CSV export of completed tasks by date range
 
-## 🛠️ Tech Stack
+Core API routes currently available:
 
-- **Backend:** Next.js 16 API Routes, Prisma 5.22.0, MongoDB Atlas, JWT, bcryptjs
-- **Frontend:** React 19, Next.js 16, Tailwind CSS, React Context, Service Workers
+- `auth`: `/api/auth/register`, `/api/auth/login`, `/api/auth/refresh`, `/api/auth/logout`
+- `tasks`: `/api/tasks`, `/api/tasks/[id]`, `/api/tasks/[id]/comments`, `/api/tasks/[id]/comments/[commentId]`
+- `events`: `/api/events`, `/api/events/[id]`
+- `notifications`: `/api/notifications`, `/api/notifications/[id]/read`, `/api/notifications/subscribe`, `/api/notifications/check-reminders`
+- `users`: `/api/users`
+- `health`: `/api/health`
 
-## 🚦 Quick Start
+## Tech Stack
+
+- Next.js 16 (App Router)
+- React 19
+- Prisma 5 + MongoDB
+- JWT (`jsonwebtoken`) + `bcryptjs`
+- Tailwind CSS 4
+- PWA support with `next-pwa`
+
+## Quick Setup (Local Development)
+
+1. Clone and open the project.
+2. Install dependencies.
+3. Create your local env file from `.env.example`.
+4. Generate Prisma client.
+5. Seed sample users/tasks/events.
+6. Start the dev server.
 
 ```bash
 cd client
 npm install
-
-# Configure .env with MongoDB URL and JWT secrets
 cp .env.example .env
-
-# Setup database
-npm run prisma:push
+npm run prisma:generate
 npm run prisma:seed
-
-# Start dev server
 npm run dev
 ```
 
-Visit [http://localhost:3000](http://localhost:3000)
+App runs at `http://localhost:3000`.
 
-## 👥 Demo Users
+## Environment Variables
 
-| Role | Email | Password | Permissions |
-|------|-------|----------|-------------|
-| Admin | admin@taskapp.com | admin123456 | Full access + user management |
-| Supervisor | supervisor@taskapp.com | supervisor123 | View all projects/tasks |
-| Manager | manager@taskapp.com | manager123 | Create projects/tasks, assign work |
-| Worker | worker@taskapp.com | worker123 | View assigned tasks, update status |
+This repository now includes a tracked `.env.example` for smoother setup.
 
-## 📂 Project Structure
+Required variables:
 
-```
+- `DATABASE_URL`
+- `JWT_ACCESS_SECRET`
+- `JWT_REFRESH_SECRET`
+- `NEXT_PUBLIC_VAPID_PUBLIC_KEY`
+- `VAPID_PRIVATE_KEY`
+- `VAPID_EMAIL`
+- `NODE_ENV` (typically `development` locally)
+
+## Guest Credentials (Seeded Users)
+
+After running `npm run prisma:seed`, you can log in with any of these guest accounts:
+
+- `maninder@company.com` / `Test123!`
+- `john@company.com` / `Test123!`
+- `sarah@company.com` / `Test123!`
+
+## Useful Scripts
+
+- `npm run dev` - Start development server
+- `npm run build` - Generate Prisma client + production build
+- `npm run start` - Start production server
+- `npm run lint` - Run ESLint
+- `npm run prisma:generate` - Generate Prisma client
+- `npm run prisma:seed` - Seed sample data
+- `npm run db:seed` - Generate client + seed data
+
+## Project Structure
+
+```text
 client/
-├── prisma/
-│   ├── schema.prisma          # Database schema (5 models)
-│   └── seed.js                # Test data seeding
-├── public/
-│   ├── manifest.json          # PWA manifest
-│   └── sw.js                  # Service worker
-├── src/
-│   ├── app/
-│   │   ├── api/              # API routes
-│   │   │   ├── auth/         # Login, register, refresh, logout
-│   │   │   ├── projects/     # Project CRUD + [id] routes
-│   │   │   ├── tasks/        # Task CRUD + [id]/comments
-│   │   │   └── users/        # User management (admin)
-│   │   ├── dashboard/        # Dashboard pages
-│   │   │   ├── page.js       # Dashboard home
-│   │   │   ├── projects/[id]/page.js  # Project detail
-│   │   │   └── users/page.js # User management
-│   │   ├── login/page.js     # Login page
-│   │   ├── register/page.js  # Registration
-│   │   └── layout.js         # Root layout with providers
-│   ├── components/
-│   │   ├── Toast.js          # Toast notification system
-│   │   └── PWARegister.js    # PWA registration
-│   ├── contexts/
-│   │   └── AuthContext.js    # Auth state + fetchWithAuth
-│   └── lib/
-│       ├── prisma.js         # Prisma client singleton
-│       ├── jwt.js            # JWT sign/verify helpers
-│       └── auth.js           # Auth middleware + RBAC
-└── package.json
+  prisma/
+    schema.prisma
+    seed.js
+  public/
+    manifest.json
+    sw.js
+  src/
+    app/
+      api/
+      dashboard/
+      login/
+      register/
+    components/
+    contexts/
+    lib/
 ```
 
-## 🔑 API Endpoints
+## Deployment Notes
 
-### Authentication
-- `POST /api/auth/register` - Create new user
-- `POST /api/auth/login` - Login (returns tokens)
-- `POST /api/auth/refresh` - Refresh access token
-- `POST /api/auth/logout` - Revoke refresh token
+- Add all required environment variables in your hosting platform.
+- Ensure MongoDB network access is configured for your deployment environment.
+- Run build command: `npm run build`.
 
-### Projects
-- `GET /api/projects` - List projects (RBAC filtered)
-- `POST /api/projects` - Create project (manager+)
-- `GET /api/projects/:id` - Get project details
-- `PUT /api/projects/:id` - Update project
-- `DELETE /api/projects/:id` - Delete project
-
-### Tasks
-- `GET /api/tasks` - List tasks (RBAC filtered)
-- `POST /api/tasks` - Create task (manager+)
-- `GET /api/tasks/:id` - Get task details
-- `PUT /api/tasks/:id` - Update task
-- `DELETE /api/tasks/:id` - Delete task
-- `GET /api/tasks/:id/comments` - List comments
-- `POST /api/tasks/:id/comments` - Add comment
-
-## 🔒 Security Features
-
-- Password hashing with bcrypt (10 rounds)
-- JWT access tokens (short expiry)
-- Rotating refresh tokens with revocation
-- Server-side authorization on all endpoints
-- RBAC enforcement
-- Input validation
-- Protected routes
-
-## 📱 PWA Installation
-
-**Desktop:** Look for install icon in browser address bar  
-**Mobile:** Share → Add to Home Screen
-
-## 🧪 Testing
-
-**Login flow:** Test with all 4 demo users (quick-fill buttons provided)  
-**Projects:** Manager creates → Admin sees all → Worker sees member projects  
-**Tasks:** Manager creates task → Worker updates status → Comments work  
-**Admin:** View users table → Update roles → Toast notifications
-
-## 🚀 Deployment
-
-**Vercel (Recommended):**
-1. Push to GitHub
-2. Import in Vercel
-3. Add env vars: `DATABASE_URL`, `JWT_ACCESS_SECRET`, `JWT_REFRESH_SECRET`
-4. Deploy!
-
-## 📊 Database Schema
-
-- **User:** id, email, passwordHash, name, role
-- **RefreshToken:** hashedToken, userId, expiresAt, revokedAt
-- **Project:** id, name, description, ownerId, members[]
-- **Task:** id, title, status, priority, projectId, assignedTo, createdBy
-- **Comment:** id, content, taskId, authorId
-
-## 🐛 Troubleshooting
-
-**Database error:** Check MongoDB Atlas IP whitelist and connection string  
-**JWT error:** Regenerate secrets, clear localStorage, re-login  
-**Prisma error:** Run `npm run prisma:push`, check version 5.22.0  
-**Next.js error:** Clear `.next` folder, restart dev server
-
-## 📝 Documentation
-
-- `PART1_README.md` - Authentication foundation
-- `PART2_README.md` - Middleware & RBAC  
-- `PART3_README.md` - Tasks & Comments API  
-- `FRONTEND_README.md` - UI implementation details
-
-## 🎉 What's Included
-
-✅ Complete authentication system with refresh tokens  
-✅ 4-role RBAC with hierarchical permissions  
-✅ Project, task, and comment CRUD  
-✅ Beautiful responsive UI with Tailwind CSS  
-✅ Toast notifications for all actions  
-✅ Admin user management page  
-✅ PWA support (installable + offline)  
-✅ Demo users with quick-login buttons  
-✅ Production-ready architecture  
-✅ Comprehensive documentation
-
-**Ready for production! 🚀**
+For deeper deployment steps, see `DEPLOYMENT.md`.
