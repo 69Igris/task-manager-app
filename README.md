@@ -72,9 +72,10 @@ Required variables:
 
 After running `npm run prisma:seed`, you can log in with any of these guest accounts:
 
-- `maninder@company.com` / `Test123!`
 - `john@company.com` / `Test123!`
 - `sarah@company.com` / `Test123!`
+
+or freely create One.
 
 ## Useful Scripts
 
