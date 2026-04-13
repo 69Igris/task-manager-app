@@ -2,6 +2,7 @@
 
 Task Manager is a full-stack Next.js app for managing equipment-related tasks, comments, events, and in-app notifications.
 
+🚀 It serves as a lightweight, modern alternative to Jira, designed for teams that want powerful task tracking without the complexity and overhead of traditional enterprise tools.
 ## Current Project Status
 
 The project is currently functional end-to-end with:
