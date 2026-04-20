@@ -56,19 +56,16 @@ export default function AddEventModal({ isOpen, onClose, onEventAdded }) {
       aria-modal="true"
     >
       <div
-        className="w-full sm:max-w-lg sm:mx-4 max-h-[92vh] overflow-y-auto animate-slide-up"
+        className="w-full sm:max-w-lg sm:mx-4 max-h-[92vh] overflow-y-auto modal-sheet animate-sheet sm:animate-slide-up"
         style={{
           background: '#ffffff',
-          borderTopLeftRadius: 'var(--radius-xl)',
-          borderTopRightRadius: 'var(--radius-xl)',
-          borderBottomLeftRadius: 'var(--radius-xl)',
-          borderBottomRightRadius: 'var(--radius-xl)',
           boxShadow: 'var(--shadow-3)',
         }}
         onClick={(e) => e.stopPropagation()}
       >
+        <div className="sm:hidden sheet-handle" aria-hidden="true" />
         <div
-          className="sticky top-0 z-10 px-6 py-4 flex items-center justify-between border-b"
+          className="sticky top-0 z-10 px-6 pt-3 pb-3 sm:pt-4 sm:pb-4 flex items-center justify-between border-b"
           style={{ background: '#ffffff', borderColor: 'var(--color-divider)' }}
         >
           <h2 className="text-[17px] font-medium" style={{ color: 'var(--color-text-strong)' }}>

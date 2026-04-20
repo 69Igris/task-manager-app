@@ -1,14 +1,32 @@
 'use client';
 
 import { useAuth } from '@/contexts/AuthContext';
+import { useToast } from '@/components/Toast';
+import { useConfirm } from '@/components/ConfirmDialog';
+import SwipeableTaskCard from '@/components/SwipeableTaskCard';
+import TaskDetailsModal from '@/components/TaskDetailsModal';
+import MobileHero from '@/components/MobileHero';
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { ChevronLeft, ChevronRight, Calendar, Settings2, User as UserIcon, Loader2 } from 'lucide-react';
+import {
+  ChevronLeft, ChevronRight, Calendar, Settings2, User as UserIcon, Loader2,
+  ArrowLeftRight, Inbox, Send, Clock, Flame, CheckCircle2, ListTodo,
+} from 'lucide-react';
+
+const MOBILE_FILTERS = [
+  { key: 'all',         label: 'All' },
+  { key: 'pending',     label: 'Pending' },
+  { key: 'in-progress', label: 'In progress' },
+  { key: 'completed',   label: 'Completed' },
+  { key: 'overdue',     label: 'Overdue' },
+];
 
 const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
 export default function AssignedByMePage() {
-  const { fetchWithAuth } = useAuth();
+  const { user, fetchWithAuth } = useAuth();
+  const { showToast } = useToast();
+  const { showConfirm } = useConfirm();
   const [stats, setStats] = useState({
     totalTasks: 0, pendingTasks: 0, inProgressTasks: 0, completedTasks: 0, overdueTasks: 0,
     dailyCompletion: [], upcomingTasks: [],
@@ -16,6 +34,93 @@ export default function AssignedByMePage() {
   const [loading, setLoading] = useState(true);
   const [weekOffset, setWeekOffset] = useState(0);
   const [allTasks, setAllTasks] = useState([]);
+  const [mobileFilter, setMobileFilter] = useState('all');
+  const [selectedTask, setSelectedTask] = useState(null);
+
+  // Mobile refresh on window event
+  useEffect(() => {
+    const onRefresh = () => fetchStats();
+    window.addEventListener('refreshTasks', onRefresh);
+    return () => window.removeEventListener('refreshTasks', onRefresh);
+    // eslint-disable-next-line
+  }, []);
+
+  // Keep stat counters in sync after optimistic mutations on mobile
+  useEffect(() => {
+    if (allTasks.length === 0 && stats.totalTasks === 0) return;
+    const now = new Date();
+    setStats((prev) => ({
+      ...prev,
+      totalTasks: allTasks.length,
+      completedTasks: allTasks.filter((t) => t.status === 'completed').length,
+      pendingTasks: allTasks.filter((t) => t.status === 'pending').length,
+      inProgressTasks: allTasks.filter((t) => t.status === 'in-progress').length,
+      overdueTasks: allTasks.filter((t) => {
+        if (!t.dueDate || t.status === 'completed') return false;
+        const d = new Date(t.dueDate); d.setHours(23, 59, 59, 999);
+        return d < now;
+      }).length,
+    }));
+    // eslint-disable-next-line
+  }, [allTasks]);
+
+  const handleTaskUpdate = (u) => setAllTasks((prev) => prev.map((t) => (t.id === u.id ? u : t)));
+  const handleTaskDelete = (id) => {
+    setAllTasks((prev) => prev.filter((t) => t.id !== id));
+    showToast('Task deleted', 'success');
+  };
+
+  const quickToggleComplete = async (task) => {
+    const willComplete = task.status !== 'completed';
+    const prev = allTasks;
+    const nextStatus = willComplete ? 'completed' : 'pending';
+    setAllTasks((cur) => cur.map((t) => (t.id === task.id ? { ...t, status: nextStatus } : t)));
+    try {
+      const response = await fetchWithAuth(`/api/tasks/${task.id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ status: nextStatus }),
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        setAllTasks(prev);
+        showToast(data.error || 'Could not update task', 'error');
+        return;
+      }
+      if (data.task) {
+        setAllTasks((cur) => cur.map((t) => (t.id === task.id ? data.task : t)));
+      }
+      showToast(willComplete ? 'Nice — marked complete' : 'Task reopened', 'success');
+    } catch {
+      setAllTasks(prev);
+      showToast('Could not update task', 'error');
+    }
+  };
+
+  const quickDelete = async (task) => {
+    const ok = await showConfirm({
+      title: 'Delete task?',
+      message: `"${task.title}" will be permanently removed.`,
+      confirmText: 'Delete',
+      cancelText: 'Keep',
+      type: 'danger',
+    });
+    if (!ok) return;
+    const prev = allTasks;
+    setAllTasks((cur) => cur.filter((t) => t.id !== task.id));
+    try {
+      const response = await fetchWithAuth(`/api/tasks/${task.id}`, { method: 'DELETE' });
+      if (!response.ok) {
+        setAllTasks(prev);
+        const data = await response.json().catch(() => ({}));
+        showToast(data.error || 'Could not delete task', 'error');
+        return;
+      }
+      showToast('Task deleted', 'success');
+    } catch {
+      setAllTasks(prev);
+      showToast('Could not delete task', 'error');
+    }
+  };
 
   useEffect(() => { fetchStats(); }, []);
   useEffect(() => { if (allTasks.length > 0) updateStatsForWeek(); /* eslint-disable-next-line */ }, [weekOffset, allTasks]);
@@ -122,14 +227,68 @@ export default function AssignedByMePage() {
     { href: '/dashboard?filter=overdue&createdByMe=true',     label: 'Overdue',     value: stats.overdueTasks,    tone: 'tag tag-urgent' },
   ];
 
+  // Mobile filter pipeline
+  const mobileFiltered = allTasks.filter((task) => {
+    if (mobileFilter === 'all') return true;
+    if (mobileFilter === 'overdue') {
+      return task.dueDate && new Date(task.dueDate) < new Date() && task.status !== 'completed';
+    }
+    return task.status === mobileFilter;
+  });
+
+  // ---- MobileHero data ----
+  const heroPct = stats.totalTasks > 0
+    ? Math.round((stats.completedTasks / stats.totalTasks) * 100)
+    : 0;
+  const allDone = stats.totalTasks > 0 && stats.completedTasks === stats.totalTasks;
+  const firstName = (user?.name || 'there').split(' ')[0];
+  const heroBody = (() => {
+    if (stats.totalTasks === 0) return "You haven't assigned anything yet.";
+    if (allDone) return 'Everyone finished — celebrate with the team.';
+    if (stats.overdueTasks > 0)
+      return `${stats.overdueTasks} assigned task${stats.overdueTasks === 1 ? '' : 's'} overdue.`;
+    return `${stats.pendingTasks + stats.inProgressTasks} still in flight across the team.`;
+  })();
+
   return (
-    <div className="px-4 lg:px-8 pt-6 pb-10 space-y-5 max-w-6xl">
-      <div>
+    <div className="lg:px-8 lg:pt-6 lg:pb-10 lg:space-y-5 max-w-6xl">
+      {/* Mobile hero */}
+      <MobileHero
+        title="Assigned"
+        accent="by me"
+        body={heroBody}
+        eyebrowIcon={Send}
+        eyebrow={`${stats.totalTasks} task${stats.totalTasks === 1 ? '' : 's'} delegated`}
+        progress={heroPct}
+        progressLabel="DONE"
+        progressIcon={allDone ? CheckCircle2 : null}
+        tiles={[
+          { tone: 'stat-blue',   label: 'Total',       value: stats.totalTasks,      Icon: ListTodo },
+          { tone: 'stat-orange', label: 'Overdue',     value: stats.overdueTasks,    Icon: Flame, emphasise: stats.overdueTasks > 0 },
+          { tone: 'stat-amber',  label: 'In progress', value: stats.inProgressTasks, Icon: Clock },
+          { tone: 'stat-green',  label: 'Completed',   value: stats.completedTasks,  Icon: CheckCircle2 },
+        ]}
+        alert={stats.overdueTasks > 0 ? {
+          tone: 'danger',
+          message: (
+            <>
+              <span className="font-semibold" style={{ color: 'var(--color-urgent)' }}>
+                {stats.overdueTasks} assigned task{stats.overdueTasks === 1 ? '' : 's'}
+              </span>{' '}
+              past due — nudge the team to keep things moving.
+            </>
+          ),
+        } : null}
+      />
+
+      <div className="px-4 lg:px-0 pt-4 lg:pt-0 space-y-5">
+      {/* Desktop heading */}
+      <div className="hidden lg:block">
         <h2 className="display-sm" style={{ fontWeight: 500 }}>Assigned by me</h2>
-        <p className="mt-1 text-sm text-[color:var(--color-text-muted)]">Tasks you've assigned to others across your team.</p>
+        <p className="mt-1 text-sm text-[color:var(--color-text-muted)]">Tasks you&apos;ve assigned to others across your team.</p>
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+      <div className="hidden lg:grid grid-cols-2 md:grid-cols-5 gap-3">
         {statCards.map((s) => (
           <Link key={s.label} href={s.href} className="card card-interactive p-4">
             <div className="text-2xl font-light text-[color:var(--color-text-strong)]">{s.value}</div>
@@ -140,7 +299,78 @@ export default function AssignedByMePage() {
         ))}
       </div>
 
-      <section className="panel p-5">
+      {/* Mobile-only swipeable task list */}
+      <div className="lg:hidden space-y-3">
+        <div className="flex items-baseline justify-between pt-1">
+          <h3 className="text-[15px] font-semibold" style={{ color: 'var(--color-text-strong)' }}>
+            All assigned tasks
+          </h3>
+          <span className="text-xs" style={{ color: 'var(--color-text-muted)' }}>
+            {mobileFiltered.length} {mobileFiltered.length === 1 ? 'task' : 'tasks'}
+          </span>
+        </div>
+
+        <div className="flex items-center gap-1 overflow-x-auto -mx-4 px-4 no-scrollbar">
+          {MOBILE_FILTERS.map((f) => {
+            const active = mobileFilter === f.key;
+            return (
+              <button
+                key={f.key}
+                onClick={() => setMobileFilter(f.key)}
+                className="text-xs font-medium px-3 py-1.5 rounded-full transition-colors shrink-0"
+                style={{
+                  color: active ? '#fff' : 'var(--color-text)',
+                  background: active ? 'var(--color-accent)' : '#fff',
+                  border: `1px solid ${active ? 'var(--color-accent)' : 'var(--color-border)'}`,
+                }}
+              >
+                {f.label}
+              </button>
+            );
+          })}
+        </div>
+
+        {mobileFiltered.length === 0 ? (
+          <div className="panel text-center py-12 px-6">
+            <div
+              className="empty-blob mx-auto mb-3"
+              style={{ background: 'linear-gradient(135deg, #0070cc 0%, #00a0d9 100%)' }}
+            >
+              <Inbox className="h-7 w-7" style={{ color: '#ffffff' }} />
+            </div>
+            <p className="font-semibold text-[15px]" style={{ color: 'var(--color-text-strong)' }}>
+              Nothing here
+            </p>
+            <p className="mt-1 text-sm" style={{ color: 'var(--color-text-muted)' }}>
+              No tasks match this filter yet.
+            </p>
+          </div>
+        ) : (
+          <>
+            {mobileFiltered.map((task) => (
+              <SwipeableTaskCard
+                key={task.id}
+                task={task}
+                onOpen={() => setSelectedTask(task)}
+                onComplete={() => quickToggleComplete(task)}
+                onDelete={() => quickDelete(task)}
+                canComplete={true}
+                canDelete={true}
+              />
+            ))}
+            <div
+              className="flex items-center justify-center gap-1.5 pt-1 text-[11px]"
+              style={{ color: 'var(--color-text-subtle)' }}
+            >
+              <ArrowLeftRight className="h-3 w-3" />
+              <span>Swipe right to complete · left to delete · tap for details</span>
+            </div>
+          </>
+        )}
+      </div>
+
+      {/* Stats chart + upcoming — hidden on mobile to keep the focus on the task list */}
+      <section className="hidden lg:block panel p-5">
         <div className="flex items-center justify-between mb-4">
           <div>
             <h3 className="text-[15px] font-medium">Daily activity</h3>
@@ -198,14 +428,21 @@ export default function AssignedByMePage() {
         </div>
       </section>
 
-      <section className="panel p-5">
+      <section className="hidden lg:block panel p-5">
         <h3 className="text-[15px] font-medium mb-4">Upcoming in the next 7 days</h3>
         {stats.upcomingTasks.length === 0 ? (
-          <div className="text-center py-10">
-            <div className="inline-flex items-center justify-center h-9 w-9 rounded-full surface-subtle mb-2">
-              <Calendar className="h-4 w-4 text-[color:var(--color-text-muted)]" />
+          <div className="text-center py-8">
+            <div
+              className="inline-flex items-center justify-center h-12 w-12 rounded-full mb-2.5"
+              style={{
+                background:
+                  'radial-gradient(circle at 30% 30%, rgba(30, 174, 219, 0.28) 0%, rgba(0, 112, 204, 0.14) 55%, transparent 100%)',
+              }}
+            >
+              <Calendar className="h-5 w-5" style={{ color: 'var(--color-accent)' }} />
             </div>
-            <p className="text-sm text-[color:var(--color-text-muted)]">No upcoming tasks</p>
+            <p className="text-sm font-medium" style={{ color: 'var(--color-text)' }}>No upcoming tasks</p>
+            <p className="text-xs mt-0.5" style={{ color: 'var(--color-text-muted)' }}>Things are quiet for the next week.</p>
           </div>
         ) : (
           <ul className="divide-y" style={{ borderColor: 'var(--color-divider)' }}>
@@ -257,6 +494,16 @@ export default function AssignedByMePage() {
           </div>
         )}
       </section>
+
+      {selectedTask && (
+        <TaskDetailsModal
+          task={selectedTask}
+          onClose={() => setSelectedTask(null)}
+          onUpdate={handleTaskUpdate}
+          onDelete={handleTaskDelete}
+        />
+      )}
+      </div>
     </div>
   );
 }

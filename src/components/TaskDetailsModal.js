@@ -329,17 +329,17 @@ export default function TaskDetailsModal({ task, onClose, onUpdate, onDelete, on
       aria-modal="true"
     >
       <div
-        className="w-full sm:max-w-2xl sm:mx-4 max-h-[92vh] overflow-y-auto animate-slide-up"
+        className="w-full sm:max-w-2xl sm:mx-4 max-h-[92vh] overflow-y-auto modal-sheet animate-sheet sm:animate-slide-up"
         style={{
           background: '#ffffff',
-          borderRadius: 'var(--radius-xl)',
           boxShadow: 'var(--shadow-3)',
         }}
         onClick={(e) => e.stopPropagation()}
       >
+        <div className="sm:hidden sheet-handle" aria-hidden="true" />
         {/* Header */}
         <div
-          className="sticky top-0 z-10 px-6 py-4 flex items-start justify-between gap-4 border-b"
+          className="sticky top-0 z-10 px-6 pt-3 pb-3 sm:pt-4 sm:pb-4 flex items-start justify-between gap-4 border-b"
           style={{ background: '#ffffff', borderColor: 'var(--color-divider)' }}
         >
           <div className="min-w-0 flex-1">

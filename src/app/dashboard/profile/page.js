@@ -3,12 +3,29 @@
 import { useAuth } from '@/contexts/AuthContext';
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { ChevronLeft, ChevronRight, Download, Calendar, Settings2, Loader2 } from 'lucide-react';
+import {
+  ChevronLeft, ChevronRight, Download, Calendar, Settings2, Loader2, LogOut,
+  User as UserIcon, ListTodo, CheckCircle2, Flame, Clock,
+} from 'lucide-react';
+import { useConfirm } from '@/components/ConfirmDialog';
+import MobileHero from '@/components/MobileHero';
 
 const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
 export default function ProfilePage() {
-  const { user, fetchWithAuth } = useAuth();
+  const { user, logout, fetchWithAuth } = useAuth();
+  const { showConfirm } = useConfirm();
+
+  const handleSignOut = async () => {
+    const ok = await showConfirm({
+      title: 'Sign out?',
+      message: 'You will need to log in again to access your tasks.',
+      confirmText: 'Sign out',
+      cancelText: 'Stay',
+      type: 'warning',
+    });
+    if (ok) logout();
+  };
   const [stats, setStats] = useState({
     totalTasks: 0, pendingTasks: 0, inProgressTasks: 0, completedTasks: 0, overdueTasks: 0,
     dailyCompletion: [], upcomingTasks: [],
@@ -122,9 +139,42 @@ export default function ProfilePage() {
 
   const initials = (user?.name || '??').split(' ').map((s) => s[0]).slice(0, 2).join('').toUpperCase();
 
+  // ---- Profile hero stats ----
+  const profilePct = stats.totalTasks > 0
+    ? Math.round((stats.completedTasks / stats.totalTasks) * 100)
+    : 0;
+  const profileFirstName = (user?.name || 'there').split(' ')[0];
+  const allDoneProfile = stats.totalTasks > 0 && stats.completedTasks === stats.totalTasks;
+  const profileBody = (() => {
+    if (stats.totalTasks === 0) return 'No tasks on record yet.';
+    if (allDoneProfile) return 'Every task completed — well earned.';
+    if (stats.overdueTasks > 0)
+      return `${stats.overdueTasks} task${stats.overdueTasks === 1 ? '' : 's'} overdue on your list.`;
+    return `${stats.pendingTasks + stats.inProgressTasks} still open.`;
+  })();
+
   return (
-    <div className="px-4 lg:px-8 pt-6 pb-10 space-y-5 max-w-6xl">
-      <div>
+    <div className="lg:px-8 lg:pt-6 lg:pb-10 lg:space-y-5 max-w-6xl">
+      {/* Mobile hero */}
+      <MobileHero
+        title="Hi"
+        accent={profileFirstName}
+        eyebrowIcon={UserIcon}
+        eyebrow={user?.email || 'Your profile'}
+        body={profileBody}
+        progress={profilePct}
+        progressLabel="DONE"
+        progressIcon={allDoneProfile ? CheckCircle2 : null}
+        tiles={[
+          { tone: 'stat-blue',   label: 'Total',       value: stats.totalTasks,       Icon: ListTodo },
+          { tone: 'stat-orange', label: 'Overdue',     value: stats.overdueTasks,     Icon: Flame, emphasise: stats.overdueTasks > 0 },
+          { tone: 'stat-amber',  label: 'In progress', value: stats.inProgressTasks,  Icon: Clock },
+          { tone: 'stat-green',  label: 'Completed',   value: stats.completedTasks,   Icon: CheckCircle2 },
+        ]}
+      />
+
+      <div className="px-4 lg:px-0 pt-4 lg:pt-0 space-y-5">
+      <div className="hidden lg:block">
         <h2 className="display-sm" style={{ fontWeight: 500 }}>Profile</h2>
         <p className="mt-1 text-sm text-[color:var(--color-text-muted)]">Your task overview and statistics.</p>
       </div>
@@ -149,8 +199,8 @@ export default function ProfilePage() {
         </div>
       </section>
 
-      {/* Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+      {/* Stats — desktop only; mobile users already see the tiles in MobileHero */}
+      <div className="hidden lg:grid grid-cols-2 md:grid-cols-5 gap-3">
         {statCards.map((s) => (
           <Link key={s.label} href={s.href} className="card card-interactive p-4">
             <div className="text-2xl font-light text-[color:var(--color-text-strong)]">{s.value}</div>
@@ -161,8 +211,8 @@ export default function ProfilePage() {
         ))}
       </div>
 
-      {/* Daily activity */}
-      <section className="panel p-5">
+      {/* Daily activity — desktop only */}
+      <section className="hidden lg:block panel p-5">
         <div className="flex items-center justify-between mb-4">
           <div>
             <h3 className="text-[15px] font-medium">Daily activity</h3>
@@ -212,8 +262,8 @@ export default function ProfilePage() {
         </div>
       </section>
 
-      {/* Upcoming */}
-      <section className="panel p-5">
+      {/* Upcoming — desktop only */}
+      <section className="hidden lg:block panel p-5">
         <h3 className="text-[15px] font-medium mb-4">Upcoming in the next 7 days</h3>
         {stats.upcomingTasks.length === 0 ? (
           <div className="text-center py-10">
@@ -265,6 +315,30 @@ export default function ProfilePage() {
           </div>
         )}
       </section>
+
+      {/* Account — sign out lives here for mobile users. Also visible on desktop for symmetry. */}
+      <section className="panel p-5">
+        <h3 className="text-[15px] font-medium mb-1">Account</h3>
+        <p className="text-xs mb-4" style={{ color: 'var(--color-text-muted)' }}>
+          Signed in as <span style={{ color: 'var(--color-text)', fontWeight: 500 }}>{user?.email}</span>
+        </p>
+        <button
+          type="button"
+          onClick={handleSignOut}
+          className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium transition-colors"
+          style={{
+            background: 'rgba(200, 27, 58, 0.06)',
+            border: '1px solid rgba(200, 27, 58, 0.3)',
+            color: 'var(--color-danger)',
+            borderRadius: 'var(--radius-input)',
+          }}
+          aria-label="Sign out"
+        >
+          <LogOut className="h-4 w-4" />
+          Sign out
+        </button>
+      </section>
+      </div>
     </div>
   );
 }

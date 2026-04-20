@@ -254,17 +254,30 @@ export default function DashboardLayout({ children }) {
               <Link
                 key={path}
                 href={path}
-                className="relative flex flex-col items-center justify-center py-2.5 gap-1"
+                className="relative flex flex-col items-center justify-center py-2 gap-0.5 transition-colors"
                 style={{ color: active ? 'var(--color-accent)' : 'var(--color-text-muted)' }}
               >
-                {active && (
-                  <span
-                    className="absolute top-0 left-1/2 -translate-x-1/2 h-0.5 w-8 rounded-b"
-                    style={{ background: 'var(--color-accent)' }}
+                <span
+                  className="flex items-center justify-center h-8 w-12 rounded-full transition-all"
+                  style={{
+                    background: active ? 'rgba(0, 112, 204, 0.12)' : 'transparent',
+                  }}
+                >
+                  <Icon
+                    className="transition-transform"
+                    style={{
+                      width: active ? 18 : 16,
+                      height: active ? 18 : 16,
+                      strokeWidth: active ? 2.4 : 2,
+                    }}
                   />
-                )}
-                <Icon className="h-4 w-4" />
-                <span className="text-[11px] font-medium">{short}</span>
+                </span>
+                <span
+                  className="text-[10px]"
+                  style={{ fontWeight: active ? 600 : 500 }}
+                >
+                  {short}
+                </span>
               </Link>
             );
           })}
@@ -274,11 +287,14 @@ export default function DashboardLayout({ children }) {
       {/* Mobile FAB */}
       <button
         onClick={() => (isEventsPage ? setShowAddEvent(true) : setShowAddTask(true))}
-        className="lg:hidden fixed bottom-20 right-4 h-12 w-12 rounded-full flex items-center justify-center text-white z-20"
-        style={{ background: 'var(--color-accent)', boxShadow: '0 8px 24px rgba(0, 112, 204, 0.35)' }}
+        className="lg:hidden fixed bottom-20 right-4 h-14 w-14 rounded-full flex items-center justify-center text-white z-20 animate-fab-pulse active:scale-95 transition-transform"
+        style={{
+          background: 'linear-gradient(135deg, #0070cc 0%, #00a0d9 100%)',
+          boxShadow: '0 10px 28px rgba(0, 112, 204, 0.42)',
+        }}
         aria-label={isEventsPage ? 'Add event' : 'Add task'}
       >
-        <Plus className="h-5 w-5" />
+        <Plus className="h-6 w-6" strokeWidth={2.5} />
       </button>
 
       {/* Modals */}

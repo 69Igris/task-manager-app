@@ -92,6 +92,63 @@ html { scroll-behavior: smooth; }
 .input-base:focus { outline: none; border-color: var(--color-accent); box-shadow: var(--ring-focus); }
 .input-base:disabled { background: var(--color-bg-subtle); color: var(--color-text-muted); cursor: not-allowed; }
 
+/* ---- Floating label field ---- */
+/* Wrap an input and its label in <div class="floating-field"> and the label
+   floats from centered to top-left on focus or when the input has content.
+   Requires `placeholder=" "` on the input so :placeholder-shown works. */
+.floating-field {
+  position: relative;
+}
+.floating-field input.input-base,
+.floating-field textarea.input-base {
+  padding-top: 22px;
+  padding-bottom: 8px;
+  height: 56px;
+}
+.floating-field label {
+  position: absolute;
+  top: 50%;
+  left: 12px;
+  transform: translateY(-50%);
+  font-size: 14px;
+  font-weight: 400;
+  color: rgba(0, 0, 0, 0.48);
+  pointer-events: none;
+  transition:
+    top 180ms cubic-bezier(0.2, 0.8, 0.2, 1),
+    left 180ms cubic-bezier(0.2, 0.8, 0.2, 1),
+    transform 180ms cubic-bezier(0.2, 0.8, 0.2, 1),
+    font-size 180ms cubic-bezier(0.2, 0.8, 0.2, 1),
+    font-weight 180ms cubic-bezier(0.2, 0.8, 0.2, 1),
+    color 180ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  letter-spacing: 0.005em;
+}
+.floating-field input.input-base:focus ~ label,
+.floating-field input.input-base:not(:placeholder-shown) ~ label {
+  top: 8px;
+  transform: translateY(0);
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--color-text-muted);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.floating-field input.input-base:focus ~ label {
+  color: var(--color-accent);
+}
+/* Autofill: keep the label floated up */
+.floating-field input.input-base:-webkit-autofill ~ label {
+  top: 8px;
+  transform: translateY(0);
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--color-text-muted);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+/* Hide the literal " " placeholder text */
+.floating-field input.input-base::placeholder { color: transparent; }
+
 /* Primary pill — signature hover */
 .btn-primary {
   display: inline-flex;
@@ -243,3 +300,181 @@ input::placeholder, textarea::placeholder { color: rgba(0, 0, 0, 0.45); }
 ::-webkit-scrollbar-track { background: transparent; }
 
 .line-clamp-2 { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+
+/* ============================================================
+   Mobile-specific treatment — Things 3 / Todoist inspired.
+   Warmer, rounder, more alive. Active on all breakpoints but
+   only used by mobile components (gated with lg:hidden).
+   ============================================================ */
+
+/* Hero card — brand blue with soft cyan highlight */
+.mobile-hero {
+  background:
+    radial-gradient(circle at 100% 0%, rgba(30, 174, 219, 0.22) 0%, transparent 55%),
+    radial-gradient(circle at 0% 100%, rgba(0, 112, 204, 0.16) 0%, transparent 55%),
+    linear-gradient(135deg, #0070cc 0%, #1e6fcb 55%, #1a5cb0 100%);
+  color: #ffffff;
+  border-radius: var(--radius-lg);
+  box-shadow: 0 10px 28px rgba(0, 112, 204, 0.3);
+  position: relative;
+  overflow: hidden;
+}
+
+/* Round checkbox — animates on complete */
+.round-check {
+  width: 24px;
+  height: 24px;
+  border-radius: 999px;
+  border: 2px solid var(--color-border-strong);
+  background: #ffffff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: border-color 160ms ease, background 180ms ease, transform 180ms cubic-bezier(0.2, 0.8, 0.2, 1.2);
+}
+.round-check svg {
+  opacity: 0;
+  transform: scale(0.6);
+  transition: opacity 180ms ease, transform 220ms cubic-bezier(0.2, 0.8, 0.2, 1.4);
+  color: #ffffff;
+}
+.round-check[data-priority="high"]   { border-color: rgba(213, 59, 0, 0.55); }
+.round-check[data-priority="medium"] { border-color: rgba(168, 100, 0, 0.55); }
+.round-check[data-priority="low"]    { border-color: rgba(10, 125, 58, 0.55); }
+.round-check[data-checked="true"] {
+  background: #0a7d3a;
+  border-color: #0a7d3a;
+  transform: scale(1.05);
+}
+.round-check[data-checked="true"] svg { opacity: 1; transform: scale(1); }
+
+/* Mobile task card — rounder with left priority stripe */
+.mobile-card {
+  position: relative;
+  background: #ffffff;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-1);
+  overflow: hidden;
+  transition: box-shadow 180ms ease, transform 180ms ease;
+}
+.mobile-card:active { transform: scale(0.99); }
+.mobile-card::before {
+  content: "";
+  position: absolute; top: 0; left: 0; bottom: 0;
+  width: 4px;
+  background: var(--color-border);
+  transition: background 180ms ease;
+}
+.mobile-card[data-priority="high"]::before   { background: var(--color-urgent); }
+.mobile-card[data-priority="medium"]::before { background: #d4a017; }
+.mobile-card[data-priority="low"]::before    { background: #0a7d3a; }
+.mobile-card[data-completed="true"]::before  { background: #0a7d3a; opacity: 0.6; }
+.mobile-card[data-completed="true"] { opacity: 0.7; }
+
+/* Colored stat tile — mobile dashboard */
+.stat-tile {
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--radius-lg);
+  padding: 14px 16px;
+  min-height: 88px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  color: #ffffff;
+  box-shadow: var(--shadow-1);
+}
+.stat-tile .stat-value { font-size: 26px; font-weight: 500; line-height: 1; }
+.stat-tile .stat-label { font-size: 12px; opacity: 0.95; font-weight: 500; }
+.stat-tile .stat-icon  { position: absolute; top: 12px; right: 12px; opacity: 0.35; }
+.stat-blue   { background: linear-gradient(135deg, #0070cc 0%, #1883fd 100%); }
+.stat-orange { background: linear-gradient(135deg, #d53b00 0%, #ff6b1a 100%); }
+.stat-green  { background: linear-gradient(135deg, #0a7d3a 0%, #1ca352 100%); }
+.stat-amber  { background: linear-gradient(135deg, #a86400 0%, #d4a017 100%); }
+.stat-violet { background: linear-gradient(135deg, #5b21b6 0%, #8b5cf6 100%); }
+
+/* Bottom-sheet drag handle */
+.sheet-handle {
+  width: 36px;
+  height: 4px;
+  border-radius: 999px;
+  background: #d1d5db;
+  margin: 8px auto 0;
+}
+
+/* Modal shell that behaves as a bottom sheet on mobile, centered card on desktop */
+.modal-sheet {
+  border-top-left-radius: var(--radius-xl);
+  border-top-right-radius: var(--radius-xl);
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+}
+@media (min-width: 640px) {
+  .modal-sheet {
+    border-bottom-left-radius: var(--radius-xl);
+    border-bottom-right-radius: var(--radius-xl);
+  }
+}
+
+@keyframes slide-sheet { from { transform: translateY(100%); } to { transform: translateY(0); } }
+.animate-sheet { animation: slide-sheet 260ms cubic-bezier(0.2, 0.8, 0.2, 1); }
+
+@keyframes celebrate { 0% { transform: scale(1); } 40% { transform: scale(1.15) rotate(-4deg); } 100% { transform: scale(1) rotate(0); } }
+.animate-celebrate { animation: celebrate 380ms cubic-bezier(0.3, 0.8, 0.2, 1.2); }
+
+@keyframes fab-pulse {
+  0%, 100% { box-shadow: 0 8px 24px rgba(0, 112, 204, 0.35), 0 0 0 0 rgba(30, 174, 219, 0.5); }
+  70%      { box-shadow: 0 8px 24px rgba(0, 112, 204, 0.35), 0 0 0 14px rgba(30, 174, 219, 0); }
+}
+.animate-fab-pulse { animation: fab-pulse 2.6s ease-in-out infinite; }
+
+/* Swipe-reveal wrapper */
+.swipe-wrap { position: relative; overflow: hidden; border-radius: var(--radius-lg); }
+.swipe-surface {
+  position: relative;
+  z-index: 1;
+  transition: transform 220ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  will-change: transform;
+  touch-action: pan-y;
+}
+.swipe-actions {
+  position: absolute; inset: 0;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 22px;
+  pointer-events: none;
+}
+.swipe-action-left  { color: #ffffff; font-size: 13px; font-weight: 600; display: inline-flex; align-items: center; gap: 6px; }
+.swipe-action-right { color: #ffffff; font-size: 13px; font-weight: 600; display: inline-flex; align-items: center; gap: 6px; }
+.swipe-bg-complete { background: linear-gradient(90deg, #0a7d3a 0%, #1ca352 100%); }
+.swipe-bg-delete   { background: linear-gradient(90deg, #ff6b1a 0%, #d53b00 100%); }
+
+/* Progress ring */
+.progress-ring { transform: rotate(-90deg); }
+.progress-ring circle { fill: none; stroke-linecap: round; transition: stroke-dashoffset 700ms cubic-bezier(0.2, 0.8, 0.2, 1); }
+
+/* Soft illustrated empty-state blob */
+.empty-blob {
+  display: inline-flex; align-items: center; justify-content: center;
+  height: 72px; width: 72px; border-radius: 999px;
+  background:
+    radial-gradient(circle at 30% 30%, rgba(30, 174, 219, 0.28) 0%, rgba(0, 112, 204, 0.14) 55%, transparent 100%);
+}
+
+/* Strikethrough animation for completed task titles */
+.strike-line { position: relative; }
+.strike-line[data-completed="true"] { color: var(--color-text-muted); }
+.strike-line[data-completed="true"]::after {
+  content: "";
+  position: absolute; left: 0; right: 0; top: 50%;
+  height: 1px; background: currentColor;
+  transform-origin: left center;
+  animation: strike 320ms cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+}
+@keyframes strike { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+
+/* Hide scrollbars on horizontal scroll strips (mobile filter chips, etc.) */
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+.no-scrollbar::-webkit-scrollbar { display: none; }

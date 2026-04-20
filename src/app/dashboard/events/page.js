@@ -5,7 +5,11 @@ import { useToast } from '@/components/Toast';
 import { useConfirm } from '@/components/ConfirmDialog';
 import { useState, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { Calendar, Trash2, User as UserIcon, X, Loader2 } from 'lucide-react';
+import {
+  Calendar, Trash2, User as UserIcon, X, Loader2,
+  CalendarDays, CalendarClock, CalendarCheck, PartyPopper,
+} from 'lucide-react';
+import MobileHero from '@/components/MobileHero';
 
 export default function EventsPage() {
   const { fetchWithAuth, user } = useAuth();
@@ -80,9 +84,62 @@ export default function EventsPage() {
     );
   }
 
+  // ---- MobileHero stats for events ----
+  const eventStats = (() => {
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    const endToday = new Date(today); endToday.setHours(23, 59, 59, 999);
+    const in7 = new Date(today); in7.setDate(in7.getDate() + 7);
+
+    let todayCount = 0, thisWeek = 0, upcoming = 0, past = 0;
+    for (const e of events) {
+      const d = new Date(e.eventDate);
+      if (d < today) past++;
+      else if (d >= today && d <= endToday) todayCount++;
+      else if (d > endToday && d <= in7) thisWeek++;
+      else upcoming++;
+    }
+    return { today: todayCount, thisWeek, upcoming, past };
+  })();
+  const nextEvent = (() => {
+    const now = new Date();
+    const upcoming = events
+      .map((e) => ({ e, d: new Date(e.eventDate) }))
+      .filter(({ d }) => d >= now)
+      .sort((a, b) => a.d - b.d);
+    return upcoming[0]?.e || null;
+  })();
+  const eventsBody = (() => {
+    if (events.length === 0) return 'No events on the calendar yet.';
+    if (eventStats.today > 0) return `${eventStats.today} event${eventStats.today === 1 ? '' : 's'} today.`;
+    if (nextEvent) {
+      const d = new Date(nextEvent.eventDate);
+      const diffDays = Math.ceil((d - new Date()) / (1000 * 60 * 60 * 24));
+      if (diffDays === 1) return `Up next: ${nextEvent.title} — tomorrow.`;
+      if (diffDays <= 7) return `Up next: ${nextEvent.title} in ${diffDays} days.`;
+      return `Up next: ${nextEvent.title}.`;
+    }
+    return 'Nothing coming up.';
+  })();
+
   return (
     <div>
-      <div className="px-4 lg:px-8 pt-6 pb-4">
+      {/* Mobile hero */}
+      <MobileHero
+        title="Your"
+        accent="calendar"
+        eyebrowIcon={CalendarDays}
+        eyebrow={`${events.length} event${events.length === 1 ? '' : 's'} total`}
+        body={eventsBody}
+        progressIcon={CalendarDays}
+        tiles={[
+          { tone: 'stat-blue',   label: 'Today',     value: eventStats.today,    Icon: CalendarCheck, emphasise: eventStats.today > 0 },
+          { tone: 'stat-amber',  label: 'This week', value: eventStats.thisWeek, Icon: CalendarClock },
+          { tone: 'stat-green',  label: 'Upcoming',  value: eventStats.upcoming, Icon: PartyPopper },
+          { tone: 'stat-violet', label: 'Past',      value: eventStats.past,     Icon: Calendar },
+        ]}
+      />
+
+      <div className="hidden lg:block px-4 lg:px-8 pt-6 pb-4">
         <h2 className="display-sm" style={{ fontWeight: 500 }}>Calendar</h2>
         <p className="mt-1 text-sm text-[color:var(--color-text-muted)]">Upcoming company events and activities.</p>
       </div>
@@ -114,12 +171,19 @@ export default function EventsPage() {
 
       <div className="px-4 lg:px-8 py-5 grid gap-3 lg:grid-cols-2">
         {events.length === 0 ? (
-          <div className="panel text-center py-16 px-6 lg:col-span-2">
-            <div className="inline-flex items-center justify-center h-10 w-10 rounded-full mb-3 surface-subtle">
-              <Calendar className="h-5 w-5 text-[color:var(--color-text-muted)]" />
+          <div className="panel text-center py-14 px-6 lg:col-span-2">
+            <div
+              className="empty-blob mx-auto mb-4"
+              style={{ background: 'linear-gradient(135deg, #0070cc 0%, #00a0d9 100%)' }}
+            >
+              <Calendar className="h-7 w-7" style={{ color: '#ffffff' }} />
             </div>
-            <p className="font-medium">No events found</p>
-            <p className="mt-1 text-sm text-[color:var(--color-text-muted)]">Create one from the top bar.</p>
+            <p className="font-semibold text-[15px]" style={{ color: 'var(--color-text-strong)' }}>
+              Nothing on the calendar
+            </p>
+            <p className="mt-1.5 text-sm leading-relaxed max-w-sm mx-auto" style={{ color: 'var(--color-text-muted)' }}>
+              Create an event from the top bar and it&apos;ll show up here. Birthdays, offsites, deadlines — whatever matters.
+            </p>
           </div>
         ) : (
           events.map((event) => {
