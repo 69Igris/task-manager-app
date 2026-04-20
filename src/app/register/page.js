@@ -59,22 +59,22 @@ export default function RegisterPage() {
 
   return (
     <div className="min-h-screen grid lg:grid-cols-2 bg-[color:var(--color-bg-inset)] relative overflow-hidden">
-      {/* Decorative gradient blobs — mobile only */}
+      {/* Ambient gradient blobs — visible on both breakpoints for depth */}
       <div
-        className="lg:hidden absolute -top-24 -right-16 h-72 w-72 rounded-full pointer-events-none"
+        className="absolute -top-24 right-[-80px] lg:right-[20%] h-72 w-72 lg:h-[420px] lg:w-[420px] rounded-full pointer-events-none"
         style={{
           background:
             'radial-gradient(circle, rgba(30, 174, 219, 0.25) 0%, rgba(0, 112, 204, 0.08) 50%, transparent 75%)',
-          filter: 'blur(20px)',
+          filter: 'blur(24px)',
         }}
         aria-hidden="true"
       />
       <div
-        className="lg:hidden absolute -bottom-32 -left-20 h-80 w-80 rounded-full pointer-events-none"
+        className="absolute -bottom-32 -left-20 lg:left-[48%] lg:-bottom-48 h-80 w-80 lg:h-[480px] lg:w-[480px] rounded-full pointer-events-none"
         style={{
           background:
             'radial-gradient(circle, rgba(139, 92, 246, 0.18) 0%, rgba(0, 112, 204, 0.06) 50%, transparent 75%)',
-          filter: 'blur(24px)',
+          filter: 'blur(28px)',
         }}
         aria-hidden="true"
       />
@@ -83,8 +83,8 @@ export default function RegisterPage() {
 
       <div className="relative flex items-start lg:items-center justify-center px-5 pt-6 pb-10 lg:px-12 lg:py-12">
         <div className="w-full max-w-md">
-          {/* Mobile hero band */}
-          <div className="lg:hidden mobile-hero p-5 mb-6">
+          {/* Hero band — visible on all breakpoints */}
+          <div className="mobile-hero p-5 lg:p-6 mb-5 lg:mb-6">
             <div className="flex items-center gap-2 mb-4">
               <div
                 className="h-8 w-8 rounded-md flex items-center justify-center"
@@ -101,23 +101,17 @@ export default function RegisterPage() {
               <Sparkles className="h-3 w-3" />
               New account
             </div>
-            <h1 className="text-[22px] leading-tight font-light text-white">
+            <h1 className="text-[22px] lg:text-[26px] leading-tight font-light text-white">
               Start fresh, <span className="font-medium">together</span>.
             </h1>
-            <p className="mt-1.5 text-[13px] leading-relaxed" style={{ color: 'rgba(255,255,255,0.86)' }}>
+            <p className="mt-1.5 text-[13px] lg:text-sm leading-relaxed" style={{ color: 'rgba(255,255,255,0.86)' }}>
               Less than a minute to set up. Free for your team.
             </p>
           </div>
 
-          {/* Form card */}
-          <div className="card p-6 lg:p-8 lg:shadow-none lg:border-0 lg:bg-transparent">
-            <div className="mb-6 hidden lg:block">
-              <h2 className="display-sm" style={{ fontWeight: 500 }}>Create account</h2>
-              <p className="mt-2 text-sm text-[color:var(--color-text-muted)]">
-                Takes less than a minute.
-              </p>
-            </div>
-            <div className="mb-5 lg:hidden">
+          {/* Form card — consistent on both breakpoints */}
+          <div className="card p-6 lg:p-7">
+            <div className="mb-5">
               <h2 className="text-[20px] font-medium text-[color:var(--color-text-strong)]">Create account</h2>
               <p className="mt-1 text-sm text-[color:var(--color-text-muted)]">
                 Fill in these details and you&apos;re in.
@@ -295,8 +289,8 @@ export default function RegisterPage() {
             </p>
           </div>
 
-          {/* Mobile-only: feature chips */}
-          <div className="lg:hidden mt-6 grid grid-cols-3 gap-2">
+          {/* Feature chips — visible on all breakpoints */}
+          <div className="mt-5 lg:mt-6 grid grid-cols-3 gap-2">
             <FeatureChip Icon={ListTodo} label="Track work" />
             <FeatureChip Icon={Bell} label="Stay alerted" />
             <FeatureChip Icon={Users} label="Share tasks" />
@@ -310,7 +304,7 @@ export default function RegisterPage() {
 function BrandPanel() {
   return (
     <div
-      className="hidden lg:flex flex-col justify-between p-12 text-white relative overflow-hidden"
+      className="hidden lg:flex flex-col justify-between items-center p-12 text-white relative overflow-hidden"
       style={{ background: 'linear-gradient(180deg, #121314 0%, #000000 100%)' }}
     >
       <div
@@ -328,14 +322,14 @@ function BrandPanel() {
         }}
       />
 
-      <div className="relative flex items-center gap-2">
+      <div className="relative self-start flex items-center gap-2">
         <div className="h-8 w-8 rounded-md flex items-center justify-center" style={{ background: 'var(--color-accent)' }}>
           <div className="h-2 w-2 rounded-sm bg-white" />
         </div>
         <span className="text-sm font-medium tracking-tight">Task Manager</span>
       </div>
 
-      <div className="relative max-w-md">
+      <div className="relative max-w-md text-center">
         <p className="text-sm font-medium text-white/60 mb-4">Create your account</p>
         <h1 style={{ fontWeight: 300, fontSize: '2.75rem', lineHeight: 1.15, letterSpacing: '-0.01em' }}>
           One workspace. Every task your team owns.
@@ -345,14 +339,14 @@ function BrandPanel() {
           and export completed work — all from a single calm workspace.
         </p>
 
-        <ul className="mt-8 space-y-3.5">
+        <ul className="mt-8 space-y-3.5 text-left inline-block">
           <DesktopFeature Icon={ListTodo} title="Everything in one place" body="Tasks, comments, events — unified." />
           <DesktopFeature Icon={Bell}      title="Gentle reminders"     body="Push alerts before work slips." />
           <DesktopFeature Icon={CheckCircle2} title="Easy exports"      body="CSV downloads for the audit log." />
         </ul>
       </div>
 
-      <div className="relative text-xs text-white/40">© {new Date().getFullYear()} Task Manager</div>
+      <div className="relative self-start text-xs text-white/40">© {new Date().getFullYear()} Task Manager</div>
     </div>
   );
 }
