@@ -1,9 +1,10 @@
 'use client';
 
 import { useState } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
-import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { Eye, EyeOff, ArrowRight, Loader2 } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
 
 export default function RegisterPage() {
   const [name, setName] = useState('');
@@ -20,163 +21,167 @@ export default function RegisterPage() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
-
-    if (password !== confirmPassword) {
-      setError('Passwords do not match');
-      return;
-    }
-
-    if (password.length < 8) {
-      setError('Password must be at least 8 characters');
-      return;
-    }
+    if (password !== confirmPassword) return setError('Passwords do not match');
+    if (password.length < 8) return setError('Password must be at least 8 characters');
 
     setLoading(true);
-
     const result = await register(name, email, password);
-
-    if (result.success) {
-      router.push('/dashboard');
-    } else {
+    if (result.success) router.push('/dashboard');
+    else {
       setError(result.error);
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-600 via-indigo-600 to-purple-700 p-4">
-      <div className="max-w-md w-full">
-        {/* Logo/Header Section */}
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-white rounded-2xl shadow-lg mb-4">
-            <span className="text-3xl">📋</span>
+    <div className="min-h-screen grid lg:grid-cols-2 bg-white">
+      <div
+        className="hidden lg:flex flex-col justify-between p-12 text-white"
+        style={{ background: 'linear-gradient(180deg, #121314 0%, #000000 100%)' }}
+      >
+        <div className="flex items-center gap-2">
+          <div className="h-8 w-8 rounded-md flex items-center justify-center" style={{ background: 'var(--color-accent)' }}>
+            <div className="h-2 w-2 rounded-sm bg-white" />
           </div>
-          <h1 className="text-4xl font-bold text-white mb-2">Create Account</h1>
-          <p className="text-blue-100">Join Task Manager today</p>
+          <span className="text-sm font-medium tracking-tight">Task Manager</span>
         </div>
 
-        {/* Registration Form */}
-        <div className="bg-white/95 backdrop-blur-sm shadow-2xl rounded-2xl p-6 sm:p-8">
-          <form onSubmit={handleSubmit} className="space-y-6">
+        <div className="max-w-md">
+          <p className="text-sm font-medium text-white/60 mb-4">Create your account</p>
+          <h1 style={{ fontWeight: 300, fontSize: '2.75rem', lineHeight: 1.15, letterSpacing: '-0.01em' }}>
+            One workspace. Every task your team owns.
+          </h1>
+          <p className="mt-4 text-sm leading-relaxed text-white/70">
+            You'll be able to create tasks, assign them to teammates, track progress,
+            and export completed work — all from a single calm workspace.
+          </p>
+        </div>
+
+        <div className="text-xs text-white/40">© {new Date().getFullYear()} Task Manager</div>
+      </div>
+
+      <div className="flex items-center justify-center px-6 py-12 lg:px-12">
+        <div className="w-full max-w-sm">
+          <div className="mb-8">
+            <h2 className="display-sm" style={{ fontWeight: 500 }}>Create account</h2>
+            <p className="mt-2 text-sm text-[color:var(--color-text-muted)]">
+              Takes less than a minute.
+            </p>
+          </div>
+
+          <form onSubmit={handleSubmit} className="space-y-5" noValidate>
             {error && (
-              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
+              <div
+                className="text-sm px-3 py-2.5"
+                style={{
+                  borderRadius: 'var(--radius-input)',
+                  color: 'var(--color-danger)',
+                  background: 'rgba(200, 27, 58, 0.06)',
+                  border: '1px solid rgba(200, 27, 58, 0.25)',
+                }}
+                role="alert"
+              >
                 {error}
               </div>
             )}
 
             <div>
-              <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-2">
-                Full Name
-              </label>
+              <label htmlFor="name" className="block text-xs font-medium mb-1.5">Full name</label>
               <input
                 id="name"
                 type="text"
+                required
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition text-gray-900"
-                placeholder="Enter Name"
-                required
+                className="input-base"
+                placeholder="Your name"
               />
             </div>
 
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
-                Email Address
-              </label>
+              <label htmlFor="email" className="block text-xs font-medium mb-1.5">Email</label>
               <input
                 id="email"
                 type="email"
+                required
+                autoComplete="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition text-gray-900"
-                placeholder="Enter email"
-                required
+                className="input-base"
+                placeholder="you@company.com"
               />
             </div>
 
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
-                Password
-              </label>
+              <label htmlFor="password" className="block text-xs font-medium mb-1.5">Password</label>
               <div className="relative">
                 <input
                   id="password"
                   type={showPassword ? 'text' : 'password'}
+                  required
+                  autoComplete="new-password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition text-gray-900"
-                  placeholder="••••••••"
-                  required
+                  className="input-base"
+                  style={{ paddingRight: '40px' }}
+                  placeholder="At least 8 characters"
                 />
                 <button
                   type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  onClick={() => setShowPassword((s) => !s)}
+                  className="absolute inset-y-0 right-0 px-3 text-[color:var(--color-text-muted)] hover:text-[color:var(--color-text)]"
+                  aria-label={showPassword ? 'Hide password' : 'Show password'}
                 >
-                  {showPassword ? (
-                    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
-                    </svg>
-                  ) : (
-                    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                    </svg>
-                  )}
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
               </div>
             </div>
 
             <div>
-              <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-2">
-                Confirm Password
-              </label>
+              <label htmlFor="confirmPassword" className="block text-xs font-medium mb-1.5">Confirm password</label>
               <div className="relative">
                 <input
                   id="confirmPassword"
                   type={showConfirmPassword ? 'text' : 'password'}
+                  required
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition text-gray-900"
-                  placeholder="••••••••"
-                  required
+                  className="input-base"
+                  style={{ paddingRight: '40px' }}
+                  placeholder="Re-enter your password"
                 />
                 <button
                   type="button"
-                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  onClick={() => setShowConfirmPassword((s) => !s)}
+                  className="absolute inset-y-0 right-0 px-3 text-[color:var(--color-text-muted)] hover:text-[color:var(--color-text)]"
+                  aria-label={showConfirmPassword ? 'Hide password' : 'Show password'}
                 >
-                  {showConfirmPassword ? (
-                    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
-                    </svg>
-                  ) : (
-                    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                    </svg>
-                  )}
+                  {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
               </div>
             </div>
 
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full bg-indigo-600 text-white py-3 rounded-lg hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition disabled:opacity-50 disabled:cursor-not-allowed font-medium"
-            >
-              {loading ? 'Creating Account...' : 'Sign Up'}
+            <button type="submit" disabled={loading} className="btn-primary w-full" style={{ padding: '12px 20px' }}>
+              {loading ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <span>Creating account</span>
+                </>
+              ) : (
+                <>
+                  <span>Create account</span>
+                  <ArrowRight className="h-4 w-4" />
+                </>
+              )}
             </button>
           </form>
 
-          <div className="mt-6">
-            <p className="text-center text-xs sm:text-sm text-gray-600">
-              Already have an account?{' '}
-              <Link href="/login" className="font-medium text-indigo-600 hover:text-indigo-500">
-                Sign in
-              </Link>
-            </p>
-          </div>
+          <p className="mt-6 text-sm text-center text-[color:var(--color-text-muted)]">
+            Already have an account?{' '}
+            <Link href="/login" className="link" style={{ fontWeight: 500 }}>
+              Sign in
+            </Link>
+          </p>
         </div>
       </div>
     </div>

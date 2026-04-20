@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { usePathname } from 'next/navigation';
+import { Smartphone, X } from 'lucide-react';
 
 export default function PWARegister() {
   const [deferredPrompt, setDeferredPrompt] = useState(null);
@@ -9,40 +10,23 @@ export default function PWARegister() {
   const pathname = usePathname();
 
   useEffect(() => {
-    // Register service worker
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
         navigator.serviceWorker
           .register('/sw.js')
-          .then((registration) => {
-            console.log('✅ Service Worker registered:', registration.scope);
-          })
-          .catch((error) => {
-            console.error('❌ Service Worker registration failed:', error);
-          });
+          .then((registration) => console.log('Service Worker registered:', registration.scope))
+          .catch((error) => console.error('Service Worker registration failed:', error));
       });
     }
 
-    // Check if user previously dismissed the prompt
     const dismissed = localStorage.getItem('pwa-install-dismissed');
-    if (dismissed === 'true') {
-      return;
-    }
+    if (dismissed === 'true') return;
+    if (pathname !== '/login') return;
 
-    // Only show on login page
-    if (pathname !== '/login') {
-      return;
-    }
-
-    // Check if device is mobile
     const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-    if (!isMobile) {
-      return;
-    }
+    if (!isMobile) return;
 
-    // Listen for the beforeinstallprompt event
     const handleBeforeInstallPrompt = (e) => {
-      console.log('📱 PWA install prompt available');
       e.preventDefault();
       setDeferredPrompt(e);
       setShowInstallButton(true);
@@ -50,29 +34,18 @@ export default function PWARegister() {
 
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
 
-    // Detect if already installed
     if (window.matchMedia('(display-mode: standalone)').matches) {
-      console.log('✅ App is running in standalone mode');
       setShowInstallButton(false);
     }
 
-    return () => {
-      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-    };
+    return () => window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
   }, [pathname]);
 
   const handleInstallClick = async () => {
     if (!deferredPrompt) return;
-
     deferredPrompt.prompt();
     const { outcome } = await deferredPrompt.userChoice;
-    
-    console.log(`User response to install prompt: ${outcome}`);
-    
-    if (outcome === 'accepted') {
-      console.log('✅ PWA installed successfully');
-    }
-    
+    if (outcome === 'accepted') console.log('PWA installed');
     setDeferredPrompt(null);
     setShowInstallButton(false);
     localStorage.setItem('pwa-install-dismissed', 'true');
@@ -86,34 +59,46 @@ export default function PWARegister() {
   if (!showInstallButton) return null;
 
   return (
-    <div className="fixed bottom-4 left-4 right-4 z-50 md:left-auto md:right-4 md:w-96">
-      <div className="bg-indigo-600 text-white p-4 rounded-lg shadow-2xl">
+    <div className="fixed bottom-4 left-4 right-4 z-[100] md:left-auto md:right-4 md:w-96 animate-slide-up">
+      <div
+        className="p-4"
+        style={{
+          background: '#ffffff',
+          border: '1px solid var(--color-border)',
+          borderRadius: 'var(--radius-md)',
+          boxShadow: 'var(--shadow-3)',
+        }}
+      >
         <div className="flex items-start gap-3">
-          <div className="flex-shrink-0">
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
-            </svg>
+          <div
+            className="h-9 w-9 rounded-full flex items-center justify-center shrink-0"
+            style={{ background: 'rgba(0, 112, 204, 0.08)' }}
+          >
+            <Smartphone className="h-4 w-4" style={{ color: 'var(--color-accent)' }} />
           </div>
-          <div className="flex-1">
-            <h3 className="font-semibold mb-1">Install Task Manager</h3>
-            <p className="text-sm text-indigo-100 mb-3">
-              Install this app for quick access and a better experience
+          <div className="flex-1 min-w-0">
+            <h3 className="text-sm font-medium" style={{ color: 'var(--color-text-strong)' }}>
+              Install task manager
+            </h3>
+            <p className="mt-1 text-xs leading-relaxed" style={{ color: 'var(--color-text-muted)' }}>
+              Add to your home screen for quicker access and a smoother experience.
             </p>
-            <div className="flex gap-2">
-              <button
-                onClick={handleInstallClick}
-                className="bg-white text-indigo-600 px-4 py-2 rounded font-medium text-sm hover:bg-indigo-50 transition"
-              >
+            <div className="flex gap-2 mt-3">
+              <button onClick={handleInstallClick} className="btn-primary" style={{ padding: '7px 14px', fontSize: 13 }}>
                 Install
               </button>
-              <button
-                onClick={handleDismiss}
-                className="text-white px-4 py-2 rounded font-medium text-sm hover:bg-indigo-700 transition"
-              >
+              <button onClick={handleDismiss} className="btn-ghost" style={{ padding: '7px 12px', fontSize: 13 }}>
                 Not now
               </button>
             </div>
           </div>
+          <button
+            onClick={handleDismiss}
+            className="btn-ghost p-1 shrink-0"
+            aria-label="Dismiss"
+          >
+            <X className="h-3.5 w-3.5" />
+          </button>
         </div>
       </div>
     </div>

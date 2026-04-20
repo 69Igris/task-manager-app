@@ -1,40 +1,46 @@
 import "./globals.css";
-import { AuthProvider } from '@/contexts/AuthContext';
-import { ToastProvider } from '@/components/Toast';
-import { ConfirmProvider } from '@/components/ConfirmDialog';
-import PWARegister from '@/components/PWARegister';
+import { Inter } from "next/font/google";
+import { AuthProvider } from "@/contexts/AuthContext";
+import { ToastProvider } from "@/components/Toast";
+import { ConfirmProvider } from "@/components/ConfirmDialog";
+import PWARegister from "@/components/PWARegister";
+
+const inter = Inter({
+  subsets: ["latin"],
+  weight: ["300", "400", "500", "600", "700"],
+  display: "swap",
+  variable: "--font-inter",
+});
 
 export const metadata = {
-  title: "Task Manager - Organize Your Work",
-  description: "Equipment and task management application",
+  title: "Task Manager",
+  description: "Equipment and task management",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "Task Manager"
+    title: "Task Manager",
   },
   icons: {
     icon: [
-      { url: '/icon-192.png', sizes: '192x192', type: 'image/png' },
-      { url: '/icon-512.png', sizes: '512x512', type: 'image/png' }
+      { url: "/icon-192.png", sizes: "192x192", type: "image/png" },
+      { url: "/icon-512.png", sizes: "512x512", type: "image/png" },
     ],
-    apple: [
-      { url: '/icon-192.png', sizes: '192x192', type: 'image/png' }
-    ]
-  }
+    apple: [{ url: "/icon-192.png", sizes: "192x192", type: "image/png" }],
+  },
 };
 
 export const viewport = {
-  width: 'device-width',
+  width: "device-width",
   initialScale: 1,
   maximumScale: 5,
   userScalable: true,
-  themeColor: '#4f46e5'
+  themeColor: "#0070cc",
 };
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="en">
+    <html lang="en" className={inter.variable}>
       <head>
         <link rel="manifest" href="/manifest.json" />
         <link rel="icon" href="/icon-192.png" />

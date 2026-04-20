@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/components/Toast';
+import { X, Loader2 } from 'lucide-react';
 
 export default function AddEventModal({ isOpen, onClose, onEventAdded }) {
   const { fetchWithAuth } = useAuth();
@@ -14,18 +15,12 @@ export default function AddEventModal({ isOpen, onClose, onEventAdded }) {
     eventDate: '',
   });
 
+  const resetForm = () => setFormData({ title: '', description: '', eventDate: '' });
+
   const handleSubmit = async (e) => {
     e.preventDefault();
-
-    // Validation
-    if (!formData.title) {
-      showToast('Title is required', 'error');
-      return;
-    }
-    if (!formData.eventDate) {
-      showToast('Event date is required', 'error');
-      return;
-    }
+    if (!formData.title) return showToast('Title is required', 'error');
+    if (!formData.eventDate) return showToast('Event date is required', 'error');
 
     setLoading(true);
     try {
@@ -33,11 +28,10 @@ export default function AddEventModal({ isOpen, onClose, onEventAdded }) {
         method: 'POST',
         body: JSON.stringify(formData),
       });
-
       const data = await response.json();
 
       if (response.ok) {
-        showToast('Event created successfully', 'success');
+        showToast('Event created', 'success');
         resetForm();
         onClose();
         if (onEventAdded) onEventAdded();
@@ -45,99 +39,99 @@ export default function AddEventModal({ isOpen, onClose, onEventAdded }) {
         throw new Error(data.error || 'Failed to create event');
       }
     } catch (error) {
-      console.error('Error creating event:', error);
       showToast(error.message || 'Failed to create event', 'error');
     } finally {
       setLoading(false);
     }
   };
 
-  const resetForm = () => {
-    setFormData({
-      title: '',
-      description: '',
-      eventDate: '',
-    });
-  };
-
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-gradient-to-br from-blue-600/95 via-indigo-600/95 to-purple-700/95 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center">
-      <div className="bg-white rounded-t-2xl sm:rounded-2xl w-full sm:max-w-lg sm:mx-4 max-h-[90vh] overflow-y-auto">
-        {/* Header */}
-        <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between rounded-t-2xl z-10">
-          <h2 className="text-xl font-bold text-gray-900">Add New Event</h2>
-          <button
-            onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 text-2xl leading-none w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors"
-          >
-            ×
+    <div
+      className="fixed inset-0 z-[110] flex items-end sm:items-center justify-center animate-fade-in"
+      style={{ background: 'rgba(0, 0, 0, 0.45)' }}
+      onClick={onClose}
+      role="dialog"
+      aria-modal="true"
+    >
+      <div
+        className="w-full sm:max-w-lg sm:mx-4 max-h-[92vh] overflow-y-auto animate-slide-up"
+        style={{
+          background: '#ffffff',
+          borderTopLeftRadius: 'var(--radius-xl)',
+          borderTopRightRadius: 'var(--radius-xl)',
+          borderBottomLeftRadius: 'var(--radius-xl)',
+          borderBottomRightRadius: 'var(--radius-xl)',
+          boxShadow: 'var(--shadow-3)',
+        }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div
+          className="sticky top-0 z-10 px-6 py-4 flex items-center justify-between border-b"
+          style={{ background: '#ffffff', borderColor: 'var(--color-divider)' }}
+        >
+          <h2 className="text-[17px] font-medium" style={{ color: 'var(--color-text-strong)' }}>
+            New event
+          </h2>
+          <button onClick={onClose} className="btn-ghost p-1.5" aria-label="Close">
+            <X className="h-4 w-4" />
           </button>
         </div>
 
-        {/* Form */}
-        <form onSubmit={handleSubmit} className="px-6 py-4 space-y-4">
-          {/* Title */}
+        <form onSubmit={handleSubmit} className="px-6 py-5 space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Event Title <span className="text-red-500">*</span>
+            <label className="block text-xs font-medium mb-1.5" style={{ color: 'var(--color-text)' }}>
+              Title <span style={{ color: 'var(--color-urgent)' }}>*</span>
             </label>
             <input
               type="text"
               value={formData.title}
               onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              placeholder="e.g., Team Building Event, Company Retreat"
+              className="input-base"
+              placeholder="e.g., Team offsite, Company retreat"
             />
           </div>
 
-          {/* Description */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-xs font-medium mb-1.5" style={{ color: 'var(--color-text)' }}>
               Description
             </label>
             <textarea
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
               rows={4}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
-              placeholder="Event details and information..."
+              className="input-base resize-none"
+              placeholder="Event details..."
             />
           </div>
 
-          {/* Event Date */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Event Date <span className="text-red-500">*</span>
+            <label className="block text-xs font-medium mb-1.5" style={{ color: 'var(--color-text)' }}>
+              Date <span style={{ color: 'var(--color-urgent)' }}>*</span>
             </label>
             <input
               type="date"
               value={formData.eventDate}
               onChange={(e) => setFormData({ ...formData, eventDate: e.target.value })}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="input-base"
               min={new Date().toISOString().split('T')[0]}
             />
           </div>
 
-          {/* Action Buttons */}
-          <div className="flex gap-3 pt-4 sticky bottom-0 bg-white pb-2">
+          <div
+            className="flex items-center justify-end gap-2 pt-4 mt-2 border-t"
+            style={{ borderColor: 'var(--color-divider)' }}
+          >
             <button
               type="button"
-              onClick={() => {
-                resetForm();
-                onClose();
-              }}
-              className="flex-1 px-4 py-2.5 border border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-50 transition-colors"
+              onClick={() => { resetForm(); onClose(); }}
+              className="btn-secondary"
             >
               Cancel
             </button>
-            <button
-              type="submit"
-              disabled={loading}
-              className="flex-1 px-4 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg font-medium hover:from-blue-700 hover:to-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-md hover:shadow-lg"
-            >
-              {loading ? 'Creating...' : 'Create Event'}
+            <button type="submit" disabled={loading} className="btn-primary">
+              {loading ? (<><Loader2 className="h-4 w-4 animate-spin" /><span>Creating</span></>) : <span>Create event</span>}
             </button>
           </div>
         </form>

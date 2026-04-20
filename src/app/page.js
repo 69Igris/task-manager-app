@@ -7,22 +7,17 @@ export default function Home() {
   const router = useRouter();
 
   useEffect(() => {
-    // Check if user is logged in
-    const accessToken = localStorage.getItem('accessToken');
-    
-    if (accessToken) {
-      router.push('/dashboard');
-    } else {
-      router.push('/login');
-    }
+    const accessToken = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
+    router.push(accessToken ? '/dashboard' : '/login');
   }, [router]);
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
-      <div className="text-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto"></div>
-        <p className="mt-4 text-gray-600">Loading...</p>
-      </div>
+    <div className="min-h-screen flex items-center justify-center bg-white">
+      <div
+        className="h-5 w-5 rounded-full border-2 border-gray-200 animate-spin"
+        style={{ borderTopColor: 'var(--color-accent)' }}
+        aria-label="Loading"
+      />
     </div>
   );
 }

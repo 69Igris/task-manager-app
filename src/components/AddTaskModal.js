@@ -3,6 +3,13 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/components/Toast';
+import { X, Loader2, Bell, BellOff } from 'lucide-react';
+
+const PRIORITIES = [
+  { key: 'low',    label: 'Low',    tagCls: 'tag tag-success' },
+  { key: 'medium', label: 'Medium', tagCls: 'tag tag-warn' },
+  { key: 'high',   label: 'High',   tagCls: 'tag tag-urgent' },
+];
 
 export default function AddTaskModal({ isOpen, onClose, onTaskAdded }) {
   const { fetchWithAuth } = useAuth();
@@ -21,48 +28,31 @@ export default function AddTaskModal({ isOpen, onClose, onTaskAdded }) {
   });
 
   useEffect(() => {
-    if (isOpen) {
-      fetchUsers();
-    }
+    if (isOpen) fetchUsers();
   }, [isOpen]);
 
   const fetchUsers = async () => {
     try {
       const response = await fetchWithAuth('/api/users');
       const data = await response.json();
-      
-      if (response.ok) {
-        setUsers(data.users || []);
-      }
+      if (response.ok) setUsers(data.users || []);
     } catch (error) {
       console.error('Error fetching users:', error);
     }
   };
 
+  const resetForm = () => setFormData({
+    equipment: '', area: '', title: '', description: '',
+    priority: 'medium', assignedTo: [], dueDate: '', alarm: false,
+  });
+
   const handleSubmit = async (e) => {
     e.preventDefault();
-
-    // Validation
-    if (!formData.equipment) {
-      showToast('Equipment is required', 'error');
-      return;
-    }
-    if (!formData.area) {
-      showToast('Area is required', 'error');
-      return;
-    }
-    if (!formData.title) {
-      showToast('Title is required', 'error');
-      return;
-    }
-    if (formData.assignedTo.length === 0) {
-      showToast('Please assign at least one person', 'error');
-      return;
-    }
-    if (formData.assignedTo.length > 2) {
-      showToast('Maximum 2 people can be assigned', 'error');
-      return;
-    }
+    if (!formData.equipment) return showToast('Equipment is required', 'error');
+    if (!formData.area) return showToast('Area is required', 'error');
+    if (!formData.title) return showToast('Title is required', 'error');
+    if (formData.assignedTo.length === 0) return showToast('Please assign at least one person', 'error');
+    if (formData.assignedTo.length > 2) return showToast('Maximum 2 people can be assigned', 'error');
 
     setLoading(true);
     try {
@@ -70,256 +60,254 @@ export default function AddTaskModal({ isOpen, onClose, onTaskAdded }) {
         method: 'POST',
         body: JSON.stringify(formData),
       });
-
       const data = await response.json();
 
       if (response.ok) {
-        showToast('Task created successfully', 'success');
-        console.log('✅ Task created, triggering refreshes...');
+        showToast('Task created', 'success');
         resetForm();
         onClose();
-        
-        // Trigger task list refresh
-        if (onTaskAdded) {
-          console.log('📤 Calling onTaskAdded callback');
-          onTaskAdded();
-        }
-        
-        // Trigger notification refresh immediately
-        console.log('🔔 Dispatching refreshNotifications event');
+        if (onTaskAdded) onTaskAdded();
         window.dispatchEvent(new Event('refreshNotifications'));
       } else {
         throw new Error(data.error || 'Failed to create task');
       }
     } catch (error) {
-      console.error('Error creating task:', error);
       showToast(error.message || 'Failed to create task', 'error');
     } finally {
       setLoading(false);
     }
   };
 
-  const resetForm = () => {
-    setFormData({
-      equipment: '',
-      area: '',
-      title: '',
-      description: '',
-      priority: 'medium',
-      assignedTo: [],
-      dueDate: '',
-      alarm: false,
-    });
-  };
-
   const handleAssigneeToggle = (userId) => {
     setFormData((prev) => {
-      const newAssignedTo = prev.assignedTo.includes(userId)
+      const next = prev.assignedTo.includes(userId)
         ? prev.assignedTo.filter((id) => id !== userId)
         : prev.assignedTo.length < 2
-        ? [...prev.assignedTo, userId]
-        : prev.assignedTo;
-      
-      return { ...prev, assignedTo: newAssignedTo };
+          ? [...prev.assignedTo, userId]
+          : prev.assignedTo;
+      return { ...prev, assignedTo: next };
     });
   };
 
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-gradient-to-br from-blue-600/95 via-indigo-600/95 to-purple-700/95 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center">
-      <div className="bg-white rounded-t-2xl sm:rounded-2xl w-full sm:max-w-lg sm:mx-4 max-h-[90vh] overflow-y-auto">
-        {/* Header */}
-        <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between rounded-t-2xl z-10">
-          <h2 className="text-xl font-bold text-gray-900">Add New Task</h2>
-          <button
-            onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 text-2xl leading-none w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors"
-          >
-            ×
+    <div
+      className="fixed inset-0 z-[110] flex items-end sm:items-center justify-center animate-fade-in"
+      style={{ background: 'rgba(0, 0, 0, 0.45)' }}
+      onClick={onClose}
+      role="dialog"
+      aria-modal="true"
+    >
+      <div
+        className="w-full sm:max-w-lg sm:mx-4 max-h-[92vh] overflow-y-auto animate-slide-up"
+        style={{
+          background: '#ffffff',
+          borderRadius: 'var(--radius-xl)',
+          boxShadow: 'var(--shadow-3)',
+        }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div
+          className="sticky top-0 z-10 px-6 py-4 flex items-center justify-between border-b"
+          style={{ background: '#ffffff', borderColor: 'var(--color-divider)' }}
+        >
+          <h2 className="text-[17px] font-medium" style={{ color: 'var(--color-text-strong)' }}>New task</h2>
+          <button onClick={onClose} className="btn-ghost p-1.5" aria-label="Close">
+            <X className="h-4 w-4" />
           </button>
         </div>
 
-        {/* Form */}
-        <form onSubmit={handleSubmit} className="px-6 py-4 space-y-4">
-          {/* Equipment */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Equipment <span className="text-red-500">*</span>
-            </label>
-            <input
-              type="text"
-              value={formData.equipment}
-              onChange={(e) => setFormData({ ...formData, equipment: e.target.value })}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              placeholder="e.g., Excavator, Pump, Generator"
-            />
+        <form onSubmit={handleSubmit} className="px-6 py-5 space-y-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-medium mb-1.5">
+                Equipment <span style={{ color: 'var(--color-urgent)' }}>*</span>
+              </label>
+              <input
+                type="text"
+                value={formData.equipment}
+                onChange={(e) => setFormData({ ...formData, equipment: e.target.value })}
+                className="input-base"
+                placeholder="e.g., Excavator, Pump"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium mb-1.5">
+                Area <span style={{ color: 'var(--color-urgent)' }}>*</span>
+              </label>
+              <input
+                type="text"
+                value={formData.area}
+                onChange={(e) => setFormData({ ...formData, area: e.target.value })}
+                className="input-base"
+                placeholder="e.g., Workshop A, Site 3"
+              />
+            </div>
           </div>
 
-          {/* Area */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Area / Location <span className="text-red-500">*</span>
-            </label>
-            <input
-              type="text"
-              value={formData.area}
-              onChange={(e) => setFormData({ ...formData, area: e.target.value })}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              placeholder="e.g., Workshop A, Site 3, Building B"
-            />
-          </div>
-
-          {/* Title */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Task Title <span className="text-red-500">*</span>
+            <label className="block text-xs font-medium mb-1.5">
+              Title <span style={{ color: 'var(--color-urgent)' }}>*</span>
             </label>
             <input
               type="text"
               value={formData.title}
               onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="input-base"
               placeholder="Brief task description"
             />
           </div>
 
-          {/* Description */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Description
-            </label>
+            <label className="block text-xs font-medium mb-1.5">Description</label>
             <textarea
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
               rows={3}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
-              placeholder="Detailed task information..."
+              className="input-base resize-none"
+              placeholder="Detailed information..."
             />
           </div>
 
-          {/* Assigned To */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Assign To (Max 2) <span className="text-red-500">*</span>
-            </label>
-            <div className="space-y-2 max-h-40 overflow-y-auto border border-gray-300 rounded-lg p-3">
-              {users.map((user) => (
-                <label
-                  key={user.id}
-                  className={`flex items-center gap-3 p-2 rounded cursor-pointer transition-colors ${
-                    formData.assignedTo.includes(user.id)
-                      ? 'bg-blue-50 border border-blue-300'
-                      : 'hover:bg-gray-50'
-                  }`}
-                >
-                  <input
-                    type="checkbox"
-                    checked={formData.assignedTo.includes(user.id)}
-                    onChange={() => handleAssigneeToggle(user.id)}
-                    disabled={
-                      !formData.assignedTo.includes(user.id) &&
-                      formData.assignedTo.length >= 2
-                    }
-                    className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                  />
-                  <div className="flex-1">
-                    <div className="text-sm font-medium text-gray-900">{user.name}</div>
-                    <div className="text-xs text-gray-500">{user.email}</div>
-                  </div>
-                </label>
-              ))}
-            </div>
-            <p className="text-xs text-gray-500 mt-1">
-              Selected: {formData.assignedTo.length}/2
-            </p>
-          </div>
-
-          {/* Due Date */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Due Date
-            </label>
-            <input
-              type="date"
-              value={formData.dueDate}
-              onChange={(e) => setFormData({ ...formData, dueDate: e.target.value })}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            />
-          </div>
-
-          {/* Priority */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Priority
-            </label>
-            <div className="grid grid-cols-3 gap-2">
-              {['low', 'medium', 'high'].map((priority) => (
-                <button
-                  key={priority}
-                  type="button"
-                  onClick={() => setFormData({ ...formData, priority })}
-                  className={`py-2 px-4 rounded-lg border-2 font-medium transition-colors ${
-                    formData.priority === priority
-                      ? priority === 'high'
-                        ? 'bg-red-100 border-red-500 text-red-800'
-                        : priority === 'medium'
-                        ? 'bg-yellow-100 border-yellow-500 text-yellow-800'
-                        : 'bg-green-100 border-green-500 text-green-800'
-                      : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50'
-                  }`}
-                >
-                  {priority.charAt(0).toUpperCase() + priority.slice(1)}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Alarm Toggle */}
-          <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-            <div>
-              <label className="text-sm font-medium text-gray-700">
-                Set Alarm Notification
+            <div className="flex items-center justify-between mb-1.5">
+              <label className="text-xs font-medium">
+                Assign to <span style={{ color: 'var(--color-urgent)' }}>*</span>
               </label>
-              <p className="text-xs text-gray-500">Get notified before due date</p>
+              <span className="text-[11px]" style={{ color: 'var(--color-text-muted)' }}>
+                {formData.assignedTo.length}/2 selected
+              </span>
+            </div>
+            <div
+              className="max-h-44 overflow-y-auto p-2 space-y-1"
+              style={{
+                border: '1px solid var(--color-border-strong)',
+                borderRadius: 'var(--radius-input)',
+                background: '#ffffff',
+              }}
+            >
+              {users.length === 0 ? (
+                <p className="text-sm text-center py-3" style={{ color: 'var(--color-text-muted)' }}>
+                  Loading team members...
+                </p>
+              ) : (
+                users.map((u) => {
+                  const selected = formData.assignedTo.includes(u.id);
+                  const disabled = !selected && formData.assignedTo.length >= 2;
+                  return (
+                    <label
+                      key={u.id}
+                      className="flex items-center gap-3 px-2 py-2 cursor-pointer transition-colors"
+                      style={{
+                        borderRadius: 'var(--radius-xs)',
+                        background: selected ? 'rgba(0, 112, 204, 0.08)' : 'transparent',
+                        border: `1px solid ${selected ? 'rgba(0, 112, 204, 0.25)' : 'transparent'}`,
+                        opacity: disabled ? 0.45 : 1,
+                        cursor: disabled ? 'not-allowed' : 'pointer',
+                      }}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={selected}
+                        onChange={() => handleAssigneeToggle(u.id)}
+                        disabled={disabled}
+                        className="h-4 w-4"
+                        style={{ accentColor: 'var(--color-accent)' }}
+                      />
+                      <div className="flex-1 min-w-0">
+                        <div className="text-sm font-medium truncate" style={{ color: 'var(--color-text-strong)' }}>
+                          {u.name}
+                        </div>
+                        <div className="text-[11px] truncate" style={{ color: 'var(--color-text-muted)' }}>
+                          {u.email}
+                        </div>
+                      </div>
+                    </label>
+                  );
+                })
+              )}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-medium mb-1.5">Due date</label>
+              <input
+                type="date"
+                value={formData.dueDate}
+                onChange={(e) => setFormData({ ...formData, dueDate: e.target.value })}
+                className="input-base"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium mb-1.5">Priority</label>
+              <div className="flex gap-1">
+                {PRIORITIES.map((p) => {
+                  const active = formData.priority === p.key;
+                  return (
+                    <button
+                      key={p.key}
+                      type="button"
+                      onClick={() => setFormData({ ...formData, priority: p.key })}
+                      className="flex-1 text-xs font-medium px-2 py-2 transition-colors"
+                      style={{
+                        background: active ? 'var(--color-accent)' : '#ffffff',
+                        color: active ? '#ffffff' : 'var(--color-text)',
+                        border: `1px solid ${active ? 'var(--color-accent)' : 'var(--color-border-strong)'}`,
+                        borderRadius: 'var(--radius-input)',
+                      }}
+                    >
+                      {p.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+
+          <div
+            className="flex items-center justify-between px-4 py-3"
+            style={{
+              background: 'var(--color-bg-inset)',
+              border: '1px solid var(--color-border)',
+              borderRadius: 'var(--radius-xs)',
+            }}
+          >
+            <div className="flex items-center gap-2.5">
+              {formData.alarm
+                ? <Bell className="h-4 w-4" style={{ color: 'var(--color-accent)' }} />
+                : <BellOff className="h-4 w-4" style={{ color: 'var(--color-text-subtle)' }} />}
+              <div>
+                <div className="text-sm font-medium" style={{ color: 'var(--color-text)' }}>Reminder</div>
+                <div className="text-[11px]" style={{ color: 'var(--color-text-muted)' }}>
+                  Notify before the due date
+                </div>
+              </div>
             </div>
             <button
               type="button"
               onClick={() => setFormData({ ...formData, alarm: !formData.alarm })}
-              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                formData.alarm ? 'bg-blue-600' : 'bg-gray-300'
-              }`}
+              className="relative inline-flex h-5 w-9 items-center rounded-full transition-colors"
+              style={{ background: formData.alarm ? 'var(--color-accent)' : '#d1d5db' }}
+              aria-label="Toggle reminder"
             >
               <span
-                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                  formData.alarm ? 'translate-x-6' : 'translate-x-1'
-                }`}
+                className="inline-block h-4 w-4 rounded-full bg-white transition-transform"
+                style={{ transform: formData.alarm ? 'translateX(18px)' : 'translateX(2px)' }}
               />
             </button>
           </div>
 
-          {/* Action Buttons */}
-          <div className="flex gap-3 pt-4 border-t border-gray-200">
-            <button
-              type="button"
-              onClick={() => {
-                resetForm();
-                onClose();
-              }}
-              className="flex-1 px-4 py-3 bg-gray-200 text-gray-700 rounded-lg font-medium hover:bg-gray-300"
-            >
+          <div
+            className="flex items-center justify-end gap-2 pt-4 mt-2 border-t"
+            style={{ borderColor: 'var(--color-divider)' }}
+          >
+            <button type="button" onClick={() => { resetForm(); onClose(); }} className="btn-secondary">
               Cancel
             </button>
-            <button
-              type="submit"
-              disabled={loading}
-              className={`flex-1 px-4 py-3 rounded-lg font-medium text-white ${
-                loading
-                  ? 'bg-gray-400 cursor-not-allowed'
-                  : 'bg-blue-600 hover:bg-blue-700'
-              }`}
-            >
-              {loading ? 'Creating...' : 'Create Task'}
+            <button type="submit" disabled={loading} className="btn-primary">
+              {loading ? (<><Loader2 className="h-4 w-4 animate-spin" /><span>Creating</span></>) : <span>Create task</span>}
             </button>
           </div>
         </form>

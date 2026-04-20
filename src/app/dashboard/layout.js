@@ -4,10 +4,26 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useRouter, usePathname } from 'next/navigation';
 import { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
+import {
+  Bell, LogOut, Plus, Inbox, Send, Users,
+  ListTodo, Calendar, User as UserIcon, Download, Loader2,
+} from 'lucide-react';
 import AddTaskModal from '@/components/AddTaskModal';
 import AddEventModal from '@/components/AddEventModal';
 import NotificationDropdown from '@/components/NotificationDropdown';
 import TaskDetailsModal from '@/components/TaskDetailsModal';
+
+const NAV = [
+  { path: '/dashboard',                 label: 'My tasks',    Icon: ListTodo, short: 'Tasks' },
+  { path: '/dashboard/assigned-by-me',  label: 'Assigned',    Icon: Send,     short: 'Assigned' },
+  { path: '/dashboard/team-tasks',      label: 'Team',        Icon: Users,    short: 'Team' },
+  { path: '/dashboard/events',          label: 'Calendar',    Icon: Calendar, short: 'Calendar' },
+  { path: '/dashboard/export',          label: 'Export',      Icon: Download, short: 'Export' },
+  { path: '/dashboard/profile',         label: 'Profile',     Icon: UserIcon, short: 'Profile' },
+];
+
+// Mobile nav is a tighter subset
+const MOBILE_NAV = NAV.filter((n) => ['Tasks', 'Assigned', 'Team', 'Calendar', 'Profile'].includes(n.short));
 
 export default function DashboardLayout({ children }) {
   const { user, loading, logout, fetchWithAuth } = useAuth();
@@ -17,92 +33,58 @@ export default function DashboardLayout({ children }) {
   const [showAddEvent, setShowAddEvent] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
-  const [selectedTaskId, setSelectedTaskId] = useState(null);
   const [selectedTask, setSelectedTask] = useState(null);
 
   const isEventsPage = pathname === '/dashboard/events';
 
   useEffect(() => {
-    if (!loading && !user) {
-      router.push('/login');
-    }
+    if (!loading && !user) router.push('/login');
   }, [user, loading, router]);
 
   const fetchUnreadCount = useCallback(async () => {
     try {
       const response = await fetchWithAuth('/api/notifications');
-      if (response.status === 401) {
-        // Auth token expired, silently skip
-        return;
-      }
+      if (response.status === 401) return;
       const data = await response.json();
-      if (response.ok) {
-        setUnreadCount(data.unreadCount || 0);
-      }
-    } catch (error) {
-      // Silently fail for notification fetching
-      console.log('Notification fetch skipped:', error.message);
-    }
+      if (response.ok) setUnreadCount(data.unreadCount || 0);
+    } catch { /* ignore */ }
   }, [fetchWithAuth]);
 
   const checkReminders = useCallback(async () => {
     try {
-      const response = await fetchWithAuth('/api/notifications/check-reminders', {
-        method: 'POST',
-      });
-      if (response.status === 401) {
-        // Auth token expired, silently skip
-        return;
-      }
-      if (response.ok) {
-        fetchUnreadCount(); // Refresh count after checking reminders
-      }
-    } catch (error) {
-      // Silently fail for reminder checking
-      console.log('Reminder check skipped:', error.message);
-    }
+      const response = await fetchWithAuth('/api/notifications/check-reminders', { method: 'POST' });
+      if (response.ok) fetchUnreadCount();
+    } catch { /* ignore */ }
   }, [fetchWithAuth, fetchUnreadCount]);
 
   useEffect(() => {
-    // Fetch unread count on mount and every 30 seconds
-    if (user) {
-      fetchUnreadCount();
-      const interval = setInterval(fetchUnreadCount, 30000);
-      return () => clearInterval(interval);
-    }
+    if (!user) return;
+    fetchUnreadCount();
+    const id = setInterval(fetchUnreadCount, 30000);
+    return () => clearInterval(id);
   }, [user, fetchUnreadCount]);
 
   useEffect(() => {
-    // Check for reminders every 5 minutes
-    if (user) {
-      checkReminders();
-      const interval = setInterval(checkReminders, 5 * 60 * 1000);
-      return () => clearInterval(interval);
-    }
+    if (!user) return;
+    checkReminders();
+    const id = setInterval(checkReminders, 5 * 60 * 1000);
+    return () => clearInterval(id);
   }, [user, checkReminders]);
 
-  // Expose refresh function for global use
   useEffect(() => {
-    const handleRefreshNotifications = () => {
-      console.log('🔔 Received refreshNotifications event, fetching...');
-      fetchUnreadCount();
-    };
-    window.addEventListener('refreshNotifications', handleRefreshNotifications);
-    return () => window.removeEventListener('refreshNotifications', handleRefreshNotifications);
+    const onRefresh = () => fetchUnreadCount();
+    window.addEventListener('refreshNotifications', onRefresh);
+    return () => window.removeEventListener('refreshNotifications', onRefresh);
   }, [fetchUnreadCount]);
 
-  // Handle task click from notifications
   const handleTaskClick = async (taskId) => {
     try {
       const response = await fetchWithAuth(`/api/tasks/${taskId}`);
       if (response.ok) {
         const data = await response.json();
         setSelectedTask(data.task);
-        setSelectedTaskId(taskId);
       }
-    } catch (error) {
-      console.error('Error fetching task:', error);
-    }
+    } catch { /* ignore */ }
   };
 
   const handleTaskUpdate = async (taskId, updates) => {
@@ -117,81 +99,132 @@ export default function DashboardLayout({ children }) {
         setSelectedTask(data.task);
         window.dispatchEvent(new Event('refreshTasks'));
       }
-    } catch (error) {
-      console.error('Error updating task:', error);
-    }
+    } catch { /* ignore */ }
   };
 
   const handleTaskDelete = async (taskId) => {
     try {
-      const response = await fetchWithAuth(`/api/tasks/${taskId}`, {
-        method: 'DELETE',
-      });
+      const response = await fetchWithAuth(`/api/tasks/${taskId}`, { method: 'DELETE' });
       if (response.ok) {
         setSelectedTask(null);
-        setSelectedTaskId(null);
         window.dispatchEvent(new Event('refreshTasks'));
       }
-    } catch (error) {
-      console.error('Error deleting task:', error);
-    }
+    } catch { /* ignore */ }
   };
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      <div className="min-h-screen flex items-center justify-center bg-white">
+        <Loader2 className="h-5 w-5 animate-spin" style={{ color: 'var(--color-accent)' }} />
       </div>
     );
   }
+  if (!user) return null;
 
-  if (!user) {
-    return null;
-  }
-
-  const navItems = [
-    { path: '/dashboard/profile', label: 'Mine', icon: '👤' },
-    { path: '/dashboard/assigned-by-me', label: 'Assigned', icon: '📝' },
-    { path: '/dashboard/team-tasks', label: 'Team', icon: '👥' },
-    { path: '/dashboard', label: 'Tasks', icon: '📋' },
-    { path: '/dashboard/events', label: 'Calendar', icon: '📅' },
-  ];
+  const initials = user.name.split(' ').map((s) => s[0]).slice(0, 2).join('').toUpperCase();
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-20">
-      {/* Header */}
-      <header className="bg-gradient-to-r from-blue-600 to-indigo-600 border-b border-blue-700 sticky top-0 z-[100] shadow-lg">
-        <div className="px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center shadow-md">
-              <span className="text-xl">📋</span>
-            </div>
-            <h1 className="text-lg font-bold text-white">Task Manager</h1>
+    <div className="min-h-screen flex bg-white">
+      {/* Desktop sidebar */}
+      <aside className="hidden lg:flex w-60 shrink-0 flex-col border-r" style={{ borderColor: 'var(--color-border)' }}>
+        <div className="h-14 flex items-center gap-2 px-5 border-b" style={{ borderColor: 'var(--color-border)' }}>
+          <div className="h-7 w-7 rounded-md flex items-center justify-center" style={{ background: 'var(--color-accent)' }}>
+            <div className="h-1.5 w-1.5 rounded-sm bg-white" />
           </div>
-          <div className="flex items-center gap-3">
-            <div className="hidden sm:flex items-center gap-2 bg-white/20 backdrop-blur-sm rounded-lg px-3 py-2">
-              <div className="w-8 h-8 bg-white rounded-full flex items-center justify-center text-sm font-semibold text-blue-600">
-                {user.name.charAt(0).toUpperCase()}
-              </div>
-              <span className="text-sm font-medium text-white">{user.name}</span>
+          <span className="text-[15px] font-medium tracking-tight">Task Manager</span>
+        </div>
+
+        <nav className="flex-1 px-3 py-4">
+          <p className="px-2 mb-2 text-[11px] font-medium text-[color:var(--color-text-subtle)]">Workspace</p>
+          <ul className="space-y-0.5">
+            {NAV.map(({ path, label, Icon }) => {
+              const active = pathname === path;
+              return (
+                <li key={path}>
+                  <Link
+                    href={path}
+                    className="flex items-center gap-2.5 px-2.5 py-2 rounded-md text-sm transition-colors"
+                    style={{
+                      color: active ? 'var(--color-accent)' : 'var(--color-text)',
+                      background: active ? 'rgba(0, 112, 204, 0.08)' : 'transparent',
+                      fontWeight: active ? 500 : 400,
+                    }}
+                  >
+                    <Icon className="h-4 w-4" />
+                    {label}
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
+        </nav>
+
+        <div className="border-t p-3" style={{ borderColor: 'var(--color-border)' }}>
+          <div className="flex items-center gap-2.5 px-2 py-2">
+            <div
+              className="h-8 w-8 rounded-full flex items-center justify-center text-xs font-medium text-white shrink-0"
+              style={{ background: 'var(--color-accent)' }}
+            >
+              {initials}
             </div>
-            
-            {/* Notification Bell */}
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-medium truncate">{user.name}</p>
+              <p className="text-xs truncate text-[color:var(--color-text-muted)]">{user.email}</p>
+            </div>
+            <button onClick={logout} className="btn-ghost p-1.5" aria-label="Sign out" title="Sign out">
+              <LogOut className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
+      </aside>
+
+      {/* Main column */}
+      <div className="flex-1 min-w-0 flex flex-col">
+        {/* Top bar */}
+        <header
+          className="h-14 flex items-center justify-between px-4 lg:px-6 border-b sticky top-0 z-30 bg-white"
+          style={{ borderColor: 'var(--color-border)' }}
+        >
+          <div className="flex items-center gap-2 lg:hidden">
+            <div className="h-7 w-7 rounded-md flex items-center justify-center" style={{ background: 'var(--color-accent)' }}>
+              <div className="h-1.5 w-1.5 rounded-sm bg-white" />
+            </div>
+            <span className="text-[15px] font-medium tracking-tight">Task Manager</span>
+          </div>
+
+          <div className="hidden lg:flex items-center">
+            <h1 className="text-[15px] font-medium text-[color:var(--color-text)]">
+              {NAV.find((n) => n.path === pathname)?.label || 'Dashboard'}
+            </h1>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => (isEventsPage ? setShowAddEvent(true) : setShowAddTask(true))}
+              className="btn-primary"
+              style={{ padding: '7px 14px', fontSize: 13 }}
+            >
+              <Plus className="h-4 w-4" />
+              <span className="hidden sm:inline">{isEventsPage ? 'New event' : 'New task'}</span>
+            </button>
+
             <div className="relative">
               <button
-                onClick={() => setShowNotifications(!showNotifications)}
-                className="flex items-center gap-1 text-sm text-white hover:text-yellow-200 font-medium transition-colors bg-white/10 hover:bg-white/20 px-3 py-2 rounded-lg relative"
+                onClick={() => setShowNotifications((s) => !s)}
+                className="btn-ghost relative"
+                style={{ padding: 8 }}
+                aria-label="Notifications"
               >
-                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-                </svg>
+                <Bell className="h-4 w-4" />
                 {unreadCount > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-bold">
+                  <span
+                    className="absolute -top-0.5 -right-0.5 text-[10px] font-medium text-white rounded-full min-w-[16px] h-4 px-1 flex items-center justify-center"
+                    style={{ background: 'var(--color-urgent)' }}
+                  >
                     {unreadCount > 9 ? '9+' : unreadCount}
                   </span>
                 )}
               </button>
-              
               {showNotifications && (
                 <NotificationDropdown
                   onClose={() => setShowNotifications(false)}
@@ -200,99 +233,72 @@ export default function DashboardLayout({ children }) {
                 />
               )}
             </div>
-
-            <button
-              onClick={logout}
-              className="flex items-center gap-1 text-sm text-white hover:text-red-200 font-medium transition-colors bg-white/10 hover:bg-white/20 px-3 py-2 rounded-lg"
-            >
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-              </svg>
-              <span className="hidden sm:inline">Logout</span>
-            </button>
           </div>
-        </div>
-      </header>
+        </header>
 
-      {/* Main Content */}
-      <main className="pb-4">
-        {children}
-      </main>
+        {/* Page content */}
+        <main className="flex-1 min-w-0 overflow-x-hidden pb-24 lg:pb-10 bg-[color:var(--color-bg-inset)]">
+          {children}
+        </main>
+      </div>
 
-      {/* Floating Add Task/Event Button */}
-      <button
-        onClick={() => isEventsPage ? setShowAddEvent(true) : setShowAddTask(true)}
-        className="fixed bottom-20 right-4 w-16 h-16 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-2xl shadow-2xl flex items-center justify-center text-3xl z-20 hover:from-blue-700 hover:to-indigo-700 active:scale-95 transition-all hover:shadow-blue-500/50 hover:scale-110 group"
+      {/* Mobile bottom nav */}
+      <nav
+        className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t z-30"
+        style={{ borderColor: 'var(--color-border)' }}
       >
-        <svg className="w-8 h-8 transition-transform group-hover:rotate-90" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
-        </svg>
-      </button>
-
-      {/* Bottom Navigation */}
-      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-30 shadow-2xl">
-        <div className="grid grid-cols-5 px-2">
-          {navItems.map((item) => {
-            const isActive = pathname === item.path;
+        <div className="grid grid-cols-5">
+          {MOBILE_NAV.map(({ path, short, Icon }) => {
+            const active = pathname === path;
             return (
               <Link
-                key={item.path}
-                href={item.path}
-                className={`flex flex-col items-center py-3 px-1 relative transition-all ${
-                  isActive
-                    ? 'text-blue-600'
-                    : 'text-gray-500 hover:text-gray-700'
-                }`}
+                key={path}
+                href={path}
+                className="relative flex flex-col items-center justify-center py-2.5 gap-1"
+                style={{ color: active ? 'var(--color-accent)' : 'var(--color-text-muted)' }}
               >
-                {isActive && (
-                  <div className="absolute top-0 left-1/2 transform -translate-x-1/2 w-12 h-1 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-b-full"></div>
+                {active && (
+                  <span
+                    className="absolute top-0 left-1/2 -translate-x-1/2 h-0.5 w-8 rounded-b"
+                    style={{ background: 'var(--color-accent)' }}
+                  />
                 )}
-                <span className={`text-2xl mb-1 transition-transform ${
-                  isActive ? 'scale-110' : 'scale-100'
-                }`}>{item.icon}</span>
-                <span className={`text-xs font-medium truncate w-full text-center ${
-                  isActive ? 'font-semibold' : ''
-                }`}>
-                  {item.label}
-                </span>
+                <Icon className="h-4 w-4" />
+                <span className="text-[11px] font-medium">{short}</span>
               </Link>
             );
           })}
         </div>
       </nav>
 
-      {/* Add Task Modal */}
+      {/* Mobile FAB */}
+      <button
+        onClick={() => (isEventsPage ? setShowAddEvent(true) : setShowAddTask(true))}
+        className="lg:hidden fixed bottom-20 right-4 h-12 w-12 rounded-full flex items-center justify-center text-white z-20"
+        style={{ background: 'var(--color-accent)', boxShadow: '0 8px 24px rgba(0, 112, 204, 0.35)' }}
+        aria-label={isEventsPage ? 'Add event' : 'Add task'}
+      >
+        <Plus className="h-5 w-5" />
+      </button>
+
+      {/* Modals */}
       <AddTaskModal
         isOpen={showAddTask}
         onClose={() => setShowAddTask(false)}
         onTaskAdded={() => {
-          console.log('📋 onTaskAdded: Dispatching refreshTasks event');
-          // Trigger custom event to refresh task list in child pages
           window.dispatchEvent(new Event('refreshTasks'));
-          // Refresh notification count immediately
-          console.log('🔔 onTaskAdded: Fetching unread count');
           fetchUnreadCount();
         }}
       />
-
-      {/* Add Event Modal */}
       <AddEventModal
         isOpen={showAddEvent}
         onClose={() => setShowAddEvent(false)}
-        onEventAdded={() => {
-          // Refresh the events page with a new timestamp to trigger re-fetch
-          router.push(`/dashboard/events?refresh=${Date.now()}`);
-        }}
+        onEventAdded={() => router.push(`/dashboard/events?refresh=${Date.now()}`)}
       />
-
-      {/* Task Details Modal from Notification */}
       {selectedTask && (
         <TaskDetailsModal
           task={selectedTask}
-          onClose={() => {
-            setSelectedTask(null);
-            setSelectedTaskId(null);
-          }}
+          onClose={() => setSelectedTask(null)}
           onTaskUpdate={handleTaskUpdate}
           onTaskDelete={handleTaskDelete}
         />

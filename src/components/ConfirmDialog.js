@@ -1,6 +1,7 @@
 'use client';
 
 import { createContext, useContext, useState } from 'react';
+import { AlertTriangle, X } from 'lucide-react';
 
 const ConfirmContext = createContext();
 
@@ -13,11 +14,11 @@ export function ConfirmProvider({ children }) {
     onCancel: null,
     confirmText: 'Confirm',
     cancelText: 'Cancel',
-    type: 'danger', // 'danger' or 'warning'
+    type: 'danger',
   });
 
   const showConfirm = ({
-    title = 'Confirm Action',
+    title = 'Confirm action',
     message,
     onConfirm,
     onCancel,
@@ -47,98 +48,89 @@ export function ConfirmProvider({ children }) {
     });
   };
 
+  const isDanger = confirmState.type === 'danger';
+  const accentColor = isDanger ? 'var(--color-urgent)' : '#a86400';
+  const accentBg = isDanger ? 'rgba(213, 59, 0, 0.08)' : 'rgba(168, 100, 0, 0.08)';
+
   return (
     <ConfirmContext.Provider value={{ showConfirm }}>
       {children}
       {confirmState.isOpen && (
-        <div 
-          className="fixed inset-0 z-[120] overflow-y-auto"
+        <div
+          className="fixed inset-0 z-[120] flex items-center justify-center px-4 animate-fade-in"
+          style={{ background: 'rgba(0, 0, 0, 0.45)' }}
           onClick={(e) => {
-            // Only close if clicking directly on the backdrop, not on modal content
-            if (e.target === e.currentTarget) {
-              confirmState.onCancel();
-            }
+            if (e.target === e.currentTarget) confirmState.onCancel();
           }}
+          role="dialog"
+          aria-modal="true"
         >
-          <div className="flex min-h-screen items-center justify-center px-4 pt-4 pb-20 text-center sm:block sm:p-0">
-            {/* Background overlay */}
+          <div
+            className="w-full max-w-md animate-slide-up"
+            style={{
+              background: '#ffffff',
+              borderRadius: 'var(--radius-xl)',
+              boxShadow: 'var(--shadow-3)',
+              overflow: 'hidden',
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-start gap-4 p-6">
+              <div
+                className="h-10 w-10 rounded-full flex items-center justify-center shrink-0"
+                style={{ background: accentBg }}
+              >
+                <AlertTriangle className="h-5 w-5" style={{ color: accentColor }} />
+              </div>
+              <div className="flex-1 min-w-0 pt-0.5">
+                <h3 className="text-[17px] font-medium" style={{ color: 'var(--color-text-strong)' }}>
+                  {confirmState.title}
+                </h3>
+                {confirmState.message && (
+                  <p className="mt-1.5 text-sm leading-relaxed" style={{ color: 'var(--color-text-muted)' }}>
+                    {confirmState.message}
+                  </p>
+                )}
+              </div>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  confirmState.onCancel();
+                }}
+                className="btn-ghost p-1.5 shrink-0"
+                aria-label="Close"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
             <div
-              className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"
-              aria-hidden="true"
-            ></div>
-
-            {/* Center modal */}
-            <span className="hidden sm:inline-block sm:h-screen sm:align-middle">&#8203;</span>
-
-            <div 
-              className="inline-block align-bottom bg-white rounded-lg px-4 pt-5 pb-4 text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full sm:p-6 animate-slide-up relative z-10"
-              onClick={(e) => e.stopPropagation()}
+              className="flex items-center justify-end gap-2 px-6 py-4 border-t"
+              style={{ borderColor: 'var(--color-divider)', background: 'var(--color-bg-inset)' }}
             >
-              <div className="sm:flex sm:items-start">
-                <div
-                  className={`mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full sm:mx-0 sm:h-10 sm:w-10 ${
-                    confirmState.type === 'danger'
-                      ? 'bg-red-100'
-                      : 'bg-yellow-100'
-                  }`}
-                >
-                  <svg
-                    className={`h-6 w-6 ${
-                      confirmState.type === 'danger'
-                        ? 'text-red-600'
-                        : 'text-yellow-600'
-                    }`}
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    strokeWidth="1.5"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z"
-                    />
-                  </svg>
-                </div>
-                <div className="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left">
-                  <h3 className="text-lg font-semibold leading-6 text-gray-900">
-                    {confirmState.title}
-                  </h3>
-                  <div className="mt-2">
-                    <p className="text-sm text-gray-500">
-                      {confirmState.message}
-                    </p>
-                  </div>
-                </div>
-              </div>
-              <div className="mt-5 sm:mt-4 sm:flex sm:flex-row-reverse gap-3">
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    confirmState.onConfirm();
-                  }}
-                  className={`inline-flex w-full justify-center rounded-md px-4 py-2.5 text-base font-semibold text-white shadow-sm sm:w-auto sm:text-sm touch-manipulation ${
-                    confirmState.type === 'danger'
-                      ? 'bg-red-600 hover:bg-red-700 active:bg-red-800 focus:ring-red-500'
-                      : 'bg-yellow-600 hover:bg-yellow-700 active:bg-yellow-800 focus:ring-yellow-500'
-                  } focus:outline-none focus:ring-2 focus:ring-offset-2`}
-                >
-                  {confirmState.confirmText}
-                </button>
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    confirmState.onCancel();
-                  }}
-                  className="mt-3 inline-flex w-full justify-center rounded-md bg-white px-4 py-2.5 text-base font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 active:bg-gray-100 sm:mt-0 sm:w-auto sm:text-sm touch-manipulation"
-                >
-                  {confirmState.cancelText}
-                </button>
-              </div>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  confirmState.onCancel();
+                }}
+                className="btn-secondary"
+              >
+                {confirmState.cancelText}
+              </button>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  confirmState.onConfirm();
+                }}
+                className={isDanger ? 'btn-danger' : 'btn-primary'}
+              >
+                {confirmState.confirmText}
+              </button>
             </div>
           </div>
         </div>
@@ -149,8 +141,6 @@ export function ConfirmProvider({ children }) {
 
 export function useConfirm() {
   const context = useContext(ConfirmContext);
-  if (!context) {
-    throw new Error('useConfirm must be used within a ConfirmProvider');
-  }
+  if (!context) throw new Error('useConfirm must be used within a ConfirmProvider');
   return context;
 }

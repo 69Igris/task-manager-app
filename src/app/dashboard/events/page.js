@@ -3,8 +3,9 @@
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/components/Toast';
 import { useConfirm } from '@/components/ConfirmDialog';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'next/navigation';
+import { Calendar, Trash2, User as UserIcon, X, Loader2 } from 'lucide-react';
 
 export default function EventsPage() {
   const { fetchWithAuth, user } = useAuth();
@@ -15,146 +16,110 @@ export default function EventsPage() {
   const [loading, setLoading] = useState(true);
   const [selectedDate, setSelectedDate] = useState('');
 
-  // Re-fetch events when component mounts or when refresh param changes
-  useEffect(() => {
-    fetchEvents();
-  }, [searchParams.get('refresh')]);
+  const refreshParam = searchParams.get('refresh');
 
-  const fetchEvents = async () => {
+  const fetchEvents = useCallback(async () => {
     try {
       let url = '/api/events';
       const params = new URLSearchParams();
-      
-      if (selectedDate) {
-        params.append('startDate', selectedDate);
-        params.append('endDate', selectedDate);
-      }
-
-      if (params.toString()) {
-        url += '?' + params.toString();
-      }
+      if (selectedDate) { params.append('startDate', selectedDate); params.append('endDate', selectedDate); }
+      if (params.toString()) url += '?' + params.toString();
 
       const response = await fetchWithAuth(url);
       const data = await response.json();
-      
-      if (response.ok) {
-        setEvents(data.events || []);
-      } else {
-        showToast(data.error || 'Failed to fetch events', 'error');
-      }
-    } catch (error) {
-      console.error('Error fetching events:', error);
+      if (response.ok) setEvents(data.events || []);
+      else showToast(data.error || 'Failed to fetch events', 'error');
+    } catch {
       showToast('Failed to fetch events', 'error');
     } finally {
       setLoading(false);
     }
-  };
+  }, [selectedDate, fetchWithAuth, showToast]);
 
-  const formatEventDate = (dateString) => {
-    const date = new Date(dateString);
+  useEffect(() => { fetchEvents(); }, [fetchEvents, refreshParam]);
+
+  const formatEventDate = (s) => {
+    const date = new Date(s);
     const now = new Date();
     const diffDays = Math.ceil((date - now) / (1000 * 60 * 60 * 24));
-
-    const formattedDate = date.toLocaleDateString('en-US', {
-      weekday: 'short',
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
-    });
-
+    const formattedDate = date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
     let timeInfo = '';
-    if (diffDays < 0) {
-      timeInfo = `${Math.abs(diffDays)} days ago`;
-    } else if (diffDays === 0) {
-      timeInfo = 'Today';
-    } else if (diffDays === 1) {
-      timeInfo = 'Tomorrow';
-    } else if (diffDays <= 7) {
-      timeInfo = `In ${diffDays} days`;
-    }
-
+    if (diffDays < 0) timeInfo = `${Math.abs(diffDays)} days ago`;
+    else if (diffDays === 0) timeInfo = 'Today';
+    else if (diffDays === 1) timeInfo = 'Tomorrow';
+    else if (diffDays <= 7) timeInfo = `In ${diffDays} days`;
     return { formattedDate, timeInfo, diffDays };
   };
+
   const deleteEvent = async (eventId, eventTitle) => {
     const confirmed = await showConfirm({
-      title: 'Delete Event',
-      message: `Are you sure you want to delete "${eventTitle}"? This action cannot be undone.`,
+      title: 'Delete event',
+      message: `Delete "${eventTitle}"? This can't be undone.`,
       confirmText: 'Delete',
       cancelText: 'Cancel',
       type: 'danger',
     });
-
     if (!confirmed) return;
-
     try {
-      const response = await fetchWithAuth(`/api/events/${eventId}`, {
-        method: 'DELETE',
-      });
-
+      const response = await fetchWithAuth(`/api/events/${eventId}`, { method: 'DELETE' });
       const data = await response.json();
-
       if (response.ok) {
-        showToast('Event deleted successfully', 'success');
-        // Remove the event from the local state
-        setEvents((prevEvents) => prevEvents.filter((event) => event.id !== eventId));
-      } else {
-        console.error('Delete failed with status:', response.status, 'Error:', data);
-        throw new Error(data.error || 'Failed to delete event');
-      }
-    } catch (error) {
-      console.error('Error deleting event:', error);
-      showToast(error.message || 'Failed to delete event', 'error');
+        showToast('Event deleted', 'success');
+        setEvents((prev) => prev.filter((e) => e.id !== eventId));
+      } else throw new Error(data.error || 'Failed to delete event');
+    } catch (err) {
+      showToast(err.message || 'Failed to delete event', 'error');
     }
   };
-  useEffect(() => {
-    fetchEvents();
-  }, [selectedDate]);
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-12">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+      <div className="flex items-center justify-center py-16">
+        <Loader2 className="h-5 w-5 animate-spin" style={{ color: 'var(--color-accent)' }} />
       </div>
     );
   }
 
   return (
-    <div className="space-y-4 pb-4">
-      {/* Page Title */}
-      <div className="px-4 pt-4">
-        <h2 className="text-2xl font-bold text-gray-900">Upcoming Events</h2>
-        <p className="text-sm text-gray-600 mt-1">Company events and activities</p>
+    <div>
+      <div className="px-4 lg:px-8 pt-6 pb-4">
+        <h2 className="display-sm" style={{ fontWeight: 500 }}>Calendar</h2>
+        <p className="mt-1 text-sm text-[color:var(--color-text-muted)]">Upcoming company events and activities.</p>
       </div>
 
-      {/* Date Filter */}
-      <div className="px-4">
-        <div className="bg-white rounded-xl border border-gray-200 p-3 shadow-sm">
-          <label className="text-xs font-medium text-gray-700 mb-2 block">Filter by Event Date</label>
+      <div
+        className="sticky top-14 z-10 bg-[color:var(--color-bg-inset)]/90 backdrop-blur-sm border-b"
+        style={{ borderColor: 'var(--color-border)' }}
+      >
+        <div className="px-4 lg:px-8 py-3 flex items-center gap-2 flex-wrap">
+          <label className="text-xs text-[color:var(--color-text-muted)] font-medium">Filter by date</label>
           <input
             type="date"
             value={selectedDate}
             onChange={(e) => setSelectedDate(e.target.value)}
-            className="w-full text-sm px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            placeholder="Select date"
+            className="input-base"
+            style={{ padding: '6px 10px', fontSize: 13, width: 160 }}
           />
           {selectedDate && (
             <button
               onClick={() => setSelectedDate('')}
-              className="mt-2 text-xs text-blue-600 hover:text-blue-700 font-medium"
+              className="p-1 rounded text-[color:var(--color-text-muted)] hover:text-[color:var(--color-text)]"
+              aria-label="Clear date"
             >
-              Clear date
+              <X className="h-3.5 w-3.5" />
             </button>
           )}
         </div>
       </div>
 
-      {/* Events List */}
-      <div className="px-4 space-y-3 pb-2">
+      <div className="px-4 lg:px-8 py-5 grid gap-3 lg:grid-cols-2">
         {events.length === 0 ? (
-          <div className="text-center py-16 bg-white rounded-2xl border-2 border-dashed border-gray-200">
-            <div className="text-gray-300 text-6xl mb-3">📅</div>
-            <p className="text-gray-600 font-medium">No events found</p>
-            <p className="text-gray-400 text-sm mt-1">Check back later for upcoming activities</p>
+          <div className="panel text-center py-16 px-6 lg:col-span-2">
+            <div className="inline-flex items-center justify-center h-10 w-10 rounded-full mb-3 surface-subtle">
+              <Calendar className="h-5 w-5 text-[color:var(--color-text-muted)]" />
+            </div>
+            <p className="font-medium">No events found</p>
+            <p className="mt-1 text-sm text-[color:var(--color-text-muted)]">Create one from the top bar.</p>
           </div>
         ) : (
           events.map((event) => {
@@ -162,88 +127,48 @@ export default function EventsPage() {
             const isPast = diffDays < 0;
             const isToday = diffDays === 0;
             const isSoon = diffDays > 0 && diffDays <= 3;
-
+            const pillCls =
+              isToday ? 'tag tag-accent' :
+              isSoon  ? 'tag tag-warn'   :
+              isPast  ? 'tag'            :
+                        'tag tag-success';
             return (
-              <div
-                key={event.id}
-                className={`bg-white rounded-2xl border overflow-hidden shadow-sm hover:shadow-lg transition-all hover:scale-[1.02] active:scale-[0.98] ${
-                  isToday
-                    ? 'border-blue-500 ring-2 ring-blue-200'
-                    : isSoon
-                    ? 'border-yellow-400 ring-1 ring-yellow-200'
-                    : isPast
-                    ? 'border-gray-300 opacity-75'
-                    : 'border-gray-200'
-                }`}
-              >
-                {/* Event Header */}
-                <div className={`px-4 py-4 border-b ${
-                  isToday
-                    ? 'bg-gradient-to-r from-blue-50 via-indigo-50 to-blue-50 border-blue-100'
-                    : isSoon
-                    ? 'bg-gradient-to-r from-yellow-50 via-amber-50 to-yellow-50 border-yellow-100'
-                    : isPast
-                    ? 'bg-gray-50 border-gray-100'
-                    : 'bg-gradient-to-r from-green-50 via-emerald-50 to-green-50 border-green-100'
-                }`}>
-                  <div className="flex items-start justify-between mb-2">
-                    <div className="flex-1">
-                      <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
-                        <span>📅</span>
-                        {event.title}
-                      </h3>
-                      {timeInfo && (
-                        <span
-                          className={`inline-block mt-2 text-xs px-3 py-1.5 rounded-full font-bold shadow-sm ${
-                            isToday
-                              ? 'bg-blue-500 text-white'
-                              : isSoon
-                              ? 'bg-yellow-500 text-white'
-                              : isPast
-                              ? 'bg-gray-400 text-white'
-                              : 'bg-green-500 text-white'
-                          }`}
-                        >
-                          {timeInfo}
-                        </span>
-                      )}
-                    </div>
-                    {user && event.createdBy === user.id && (
-                      <button
-                        onClick={() => deleteEvent(event.id, event.title)}
-                        className="ml-2 p-2 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors"
-                        title="Delete event"
-                      >
-                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                        </svg>
-                      </button>
+              <article key={event.id} className="card p-4" style={isPast ? { opacity: 0.8 } : undefined}>
+                <div className="flex items-start justify-between gap-3 mb-2">
+                  <div className="min-w-0">
+                    <h3 className="text-[15px] font-medium text-[color:var(--color-text-strong)]">{event.title}</h3>
+                    {timeInfo && (
+                      <span className={pillCls} style={{ fontSize: 11, marginTop: 6 }}>{timeInfo}</span>
                     )}
                   </div>
-                </div>
-
-                {/* Event Body */}
-                <div className="px-4 py-4">
-                  {/* Event Description */}
-                  {event.description && (
-                    <p className="text-sm text-gray-600 mb-4 leading-relaxed">{event.description}</p>
+                  {user && event.createdBy === user.id && (
+                    <button
+                      onClick={() => deleteEvent(event.id, event.title)}
+                      className="btn-ghost p-1.5"
+                      style={{ color: 'var(--color-danger)' }}
+                      aria-label="Delete event"
+                      title="Delete event"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
                   )}
-
-                  {/* Event Footer */}
-                  <div className="flex items-center justify-between text-xs">
-                    <div className="flex items-center gap-2 bg-gray-50 px-3 py-2 rounded-lg">
-                      <span className="text-base">🗓️</span>
-                      <span className="font-semibold text-gray-700">{formattedDate}</span>
-                    </div>
-                    {event.creator && (
-                      <div className="flex items-center gap-2 text-gray-500">
-                        <span className="text-base">👤</span>
-                        <span className="font-medium">{event.creator.name}</span>
-                      </div>
-                    )}
-                  </div>
                 </div>
-              </div>
+                {event.description && (
+                  <p className="text-sm leading-relaxed text-[color:var(--color-text-muted)] mb-3">{event.description}</p>
+                )}
+                <div className="flex items-center justify-between text-xs text-[color:var(--color-text-muted)] pt-3 border-t" style={{ borderColor: 'var(--color-divider)' }}>
+                  <span className="inline-flex items-center gap-1.5">
+                    <Calendar className="h-3.5 w-3.5" />
+                    <span className="font-medium text-[color:var(--color-text)]">{formattedDate}</span>
+                  </span>
+                  {event.creator && (
+                    <span className="inline-flex items-center gap-1.5">
+                      <UserIcon className="h-3.5 w-3.5" />
+                      {event.creator.name}
+                    </span>
+                  )}
+                </div>
+              </article>
             );
           })
         )}

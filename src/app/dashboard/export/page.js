@@ -3,6 +3,22 @@
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/components/Toast';
 import { useState } from 'react';
+import { Download, Info, Loader2 } from 'lucide-react';
+
+const INCLUDED = [
+  'Equipment and area',
+  'Title and description',
+  'Priority and status',
+  'Assigned users and creator',
+  'Due date and completion date',
+];
+
+function escapeCSV(str) {
+  if (!str) return '';
+  const needsQuotes = /[,"\n]/.test(str);
+  const escaped = String(str).replace(/"/g, '""');
+  return needsQuotes ? `"${escaped}"` : escaped;
+}
 
 export default function ExportPage() {
   const { fetchWithAuth } = useAuth();
@@ -11,235 +27,119 @@ export default function ExportPage() {
   const [loading, setLoading] = useState(false);
 
   const handleExport = async () => {
-    if (!dateRange.start || !dateRange.end) {
-      showToast('Please select both start and end dates', 'error');
-      return;
-    }
+    if (!dateRange.start || !dateRange.end) return showToast('Select both start and end dates', 'error');
 
     setLoading(true);
     try {
-      // Fetch completed tasks in the date range
-      const params = new URLSearchParams({
-        status: 'completed',
-        startDate: dateRange.start,
-        endDate: dateRange.end,
-      });
-
+      const params = new URLSearchParams({ status: 'completed', startDate: dateRange.start, endDate: dateRange.end });
       const response = await fetchWithAuth(`/api/tasks?${params}`);
       const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to fetch tasks');
-      }
-
+      if (!response.ok) throw new Error(data.error || 'Failed to fetch tasks');
       const tasks = data.tasks || [];
+      if (tasks.length === 0) { showToast('No completed tasks in that range', 'warning'); return; }
 
-      if (tasks.length === 0) {
-        showToast('No completed tasks found in the selected date range', 'warning');
-        return;
-      }
+      const headers = ['Equipment', 'Area', 'Title', 'Description', 'Priority', 'Status', 'Assigned to', 'Created by', 'Due date', 'Completed at'];
+      const rows = tasks.map((t) => ([
+        escapeCSV(t.equipment || 'N/A'),
+        escapeCSV(t.area || 'N/A'),
+        escapeCSV(t.title || 'N/A'),
+        escapeCSV(t.description || 'N/A'),
+        t.priority || 'N/A',
+        t.status || 'N/A',
+        escapeCSV(t.assignedUsers?.map((u) => u.name).join('; ') || 'N/A'),
+        escapeCSV(t.creator?.name || 'N/A'),
+        t.dueDate ? new Date(t.dueDate).toLocaleDateString() : 'N/A',
+        t.completedAt ? new Date(t.completedAt).toLocaleDateString() : 'N/A',
+      ]));
+      const csv = [headers, ...rows].map((r) => r.join(',')).join('\n');
 
-      // Generate CSV content
-      const csvContent = generateCSV(tasks);
-
-      // Create and download file
-      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-      const link = document.createElement('a');
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
       const url = URL.createObjectURL(blob);
-      
-      link.setAttribute('href', url);
-      link.setAttribute('download', `completed_tasks_${dateRange.start}_to_${dateRange.end}.csv`);
-      link.style.visibility = 'hidden';
-      
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `completed_tasks_${dateRange.start}_to_${dateRange.end}.csv`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
+      URL.revokeObjectURL(url);
 
-      showToast(`Exported ${tasks.length} completed tasks`, 'success');
-    } catch (error) {
-      console.error('Export error:', error);
-      showToast(error.message || 'Failed to export tasks', 'error');
+      showToast(`Exported ${tasks.length} tasks`, 'success');
+    } catch (err) {
+      showToast(err.message || 'Failed to export tasks', 'error');
     } finally {
       setLoading(false);
     }
   };
 
-  const generateCSV = (tasks) => {
-    // CSV Headers
-    const headers = [
-      'Equipment',
-      'Area',
-      'Title',
-      'Description',
-      'Priority',
-      'Status',
-      'Assigned To',
-      'Created By',
-      'Due Date',
-      'Completed At',
-    ];
-
-    // Convert tasks to CSV rows
-    const rows = tasks.map((task) => {
-      const assignedNames = task.assignedUsers?.map((u) => u.name).join('; ') || 'N/A';
-      const creatorName = task.creator?.name || 'N/A';
-      const dueDate = task.dueDate ? new Date(task.dueDate).toLocaleDateString() : 'N/A';
-      const completedAt = task.completedAt
-        ? new Date(task.completedAt).toLocaleDateString()
-        : 'N/A';
-
-      return [
-        escapeCSV(task.equipment || 'N/A'),
-        escapeCSV(task.area || 'N/A'),
-        escapeCSV(task.title || 'N/A'),
-        escapeCSV(task.description || 'N/A'),
-        task.priority || 'N/A',
-        task.status || 'N/A',
-        escapeCSV(assignedNames),
-        escapeCSV(creatorName),
-        dueDate,
-        completedAt,
-      ];
-    });
-
-    // Combine headers and rows
-    const csvLines = [headers, ...rows];
-    return csvLines.map((row) => row.join(',')).join('\n');
-  };
-
-  const escapeCSV = (str) => {
-    if (!str) return '';
-    // Escape quotes and wrap in quotes if contains comma, quote, or newline
-    const needsQuotes = /[,"\n]/.test(str);
-    const escaped = str.replace(/"/g, '""');
-    return needsQuotes ? `"${escaped}"` : escaped;
-  };
+  const disabled = loading || !dateRange.start || !dateRange.end;
 
   return (
-    <div className="space-y-4 pb-4">
-      {/* Page Title */}
-      <div className="px-4 pt-4">
-        <h2 className="text-2xl font-bold text-gray-900">Export Tasks</h2>
-        <p className="text-sm text-gray-600 mt-1">
-          Download completed tasks as CSV file
-        </p>
+    <div className="px-4 lg:px-8 pt-6 pb-10 max-w-2xl">
+      <div className="mb-6">
+        <h2 className="display-sm" style={{ fontWeight: 500 }}>Export</h2>
+        <p className="mt-1 text-sm text-[color:var(--color-text-muted)]">Download a CSV of completed tasks for a date range.</p>
       </div>
 
-      {/* Export Form */}
-      <div className="px-4">
-        <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm">
-          <div className="space-y-4">
-            {/* Instructions */}
-            <div className="bg-gradient-to-r from-blue-50 via-indigo-50 to-purple-50 border-2 border-blue-200 rounded-xl p-4">
-              <div className="flex gap-3">
-                <span className="text-blue-600 text-2xl">ℹ️</span>
-                <div>
-                  <h3 className="text-sm font-bold text-gray-900 mb-1">
-                    How to export
-                  </h3>
-                  <p className="text-xs text-gray-600 leading-relaxed">
-                    Select a date range to export all completed tasks within that period.
-                    The file will be downloaded as a CSV file which can be opened in Excel.
-                  </p>
-                </div>
-              </div>
-            </div>
+      <div className="panel p-6 space-y-5">
+        <div
+          className="flex gap-3 items-start px-4 py-3 rounded"
+          style={{
+            borderRadius: 'var(--radius-xs)',
+            background: 'rgba(0, 112, 204, 0.06)',
+            border: '1px solid rgba(0, 112, 204, 0.2)',
+          }}
+        >
+          <Info className="h-4 w-4 shrink-0 mt-0.5" style={{ color: 'var(--color-accent)' }} />
+          <p className="text-xs leading-relaxed text-[color:var(--color-text)]">
+            The CSV will include every task marked completed between your selected dates. Opens directly in Excel, Numbers or Sheets.
+          </p>
+        </div>
 
-            {/* Date Range Selection */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-3">
-                Select Date Range
-              </label>
-              <div className="grid grid-cols-1 gap-3">
-                <div>
-                  <label className="text-xs font-medium text-gray-600 mb-1.5 block">From</label>
-                  <input
-                    type="date"
-                    value={dateRange.start}
-                    onChange={(e) => setDateRange({ ...dateRange, start: e.target.value })}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
-                </div>
-                <div>
-                  <label className="text-xs font-medium text-gray-600 mb-1.5 block">To</label>
-                  <input
-                    type="date"
-                    value={dateRange.end}
-                    onChange={(e) => setDateRange({ ...dateRange, end: e.target.value })}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Export Button */}
-            <button
-              onClick={handleExport}
-              disabled={loading || !dateRange.start || !dateRange.end}
-              className={`w-full py-4 px-4 rounded-xl font-bold text-white transition-all shadow-lg ${
-                loading || !dateRange.start || !dateRange.end
-                  ? 'bg-gray-400 cursor-not-allowed'
-                  : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 hover:shadow-xl active:scale-95'
-              }`}
-            >
-              {loading ? (
-                <span className="flex items-center justify-center gap-2">
-                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-                  Exporting...
-                </span>
-              ) : (
-                <span className="flex items-center justify-center gap-2 text-base">
-                  <span>📥</span>
-                  Export to CSV
-                </span>
-              )}
-            </button>
-
-            {/* Info Box */}
-            <div className="pt-4 border-t-2 border-gray-200">
-              <h4 className="text-sm font-bold text-gray-900 mb-3 flex items-center gap-2">
-                <span>📋</span>
-                What's included in the export?
-              </h4>
-              <ul className="text-sm text-gray-600 space-y-2">
-                <li className="flex items-center gap-2">
-                  <span className="w-1.5 h-1.5 bg-blue-500 rounded-full"></span>
-                  Equipment and Area information
-                </li>
-                <li className="flex items-center gap-2">
-                  <span className="w-1.5 h-1.5 bg-blue-500 rounded-full"></span>
-                  Task title and description
-                </li>
-                <li className="flex items-center gap-2">
-                  <span className="w-1.5 h-1.5 bg-blue-500 rounded-full"></span>
-                  Priority and status
-                </li>
-                <li className="flex items-center gap-2">
-                  <span className="w-1.5 h-1.5 bg-blue-500 rounded-full"></span>
-                  Assigned users and creator
-                </li>
-                <li className="flex items-center gap-2">
-                  <span className="w-1.5 h-1.5 bg-blue-500 rounded-full"></span>
-                  Due date and completion date
-                </li>
-              </ul>
-            </div>
+        <div className="grid sm:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-xs font-medium mb-1.5">From</label>
+            <input
+              type="date"
+              value={dateRange.start}
+              onChange={(e) => setDateRange({ ...dateRange, start: e.target.value })}
+              className="input-base"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-medium mb-1.5">To</label>
+            <input
+              type="date"
+              value={dateRange.end}
+              onChange={(e) => setDateRange({ ...dateRange, end: e.target.value })}
+              className="input-base"
+            />
           </div>
         </div>
-      </div>
 
-      {/* Sample Preview */}
-      <div className="px-4 pb-2">
-        <div className="bg-gradient-to-r from-gray-50 to-gray-100 rounded-2xl border border-gray-200 p-4 shadow-sm">
-          <h4 className="text-sm font-bold text-gray-900 mb-3 flex items-center gap-2">
-            <span>👀</span>
-            CSV Format Preview
-          </h4>
-          <div className="bg-white rounded-lg border border-gray-300 p-3 overflow-x-auto">
-            <pre className="text-xs text-gray-600 font-mono">
-Equipment,Area,Title,Description,Priority,...
-            </pre>
-          </div>
+        <button onClick={handleExport} disabled={disabled} className="btn-primary w-full" style={{ padding: '12px 20px' }}>
+          {loading ? (
+            <>
+              <Loader2 className="h-4 w-4 animate-spin" />
+              <span>Exporting</span>
+            </>
+          ) : (
+            <>
+              <Download className="h-4 w-4" />
+              <span>Export to CSV</span>
+            </>
+          )}
+        </button>
+
+        <div className="pt-4 border-t" style={{ borderColor: 'var(--color-divider)' }}>
+          <h4 className="text-xs font-medium text-[color:var(--color-text)] mb-2">What's included</h4>
+          <ul className="text-xs space-y-1.5 text-[color:var(--color-text-muted)]">
+            {INCLUDED.map((item) => (
+              <li key={item} className="flex items-center gap-2">
+                <span className="h-1 w-1 rounded-full" style={{ background: 'var(--color-accent)' }} />
+                {item}
+              </li>
+            ))}
+          </ul>
         </div>
       </div>
     </div>
