@@ -282,19 +282,19 @@ export default function AssignedByMePage() {
       />
 
       <div className="px-4 lg:px-0 pt-4 lg:pt-0 space-y-5">
-      {/* Desktop heading */}
-      <div className="hidden lg:block">
-        <h2 className="display-sm" style={{ fontWeight: 500 }}>Assigned by me</h2>
-        <p className="mt-1 text-sm text-[color:var(--color-text-muted)]">Tasks you&apos;ve assigned to others across your team.</p>
-      </div>
-
-      <div className="hidden lg:grid grid-cols-2 md:grid-cols-5 gap-3">
+      {/* Filter quick-links — desktop only, since mobile uses filter chips below */}
+      <div className="hidden lg:flex items-center gap-2 flex-wrap">
+        <span className="text-xs font-medium text-[color:var(--color-text-muted)] mr-1">
+          Jump to:
+        </span>
         {statCards.map((s) => (
-          <Link key={s.label} href={s.href} className="card card-interactive p-4">
-            <div className="text-2xl font-light text-[color:var(--color-text-strong)]">{s.value}</div>
-            <div className="mt-1.5">
-              <span className={s.tone} style={{ fontSize: 11 }}>{s.label}</span>
-            </div>
+          <Link
+            key={s.label}
+            href={s.href}
+            className={`${s.tone} hover:opacity-80 transition-opacity`}
+            style={{ fontSize: 12, padding: '4px 10px' }}
+          >
+            {s.label} · {s.value}
           </Link>
         ))}
       </div>

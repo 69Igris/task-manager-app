@@ -226,54 +226,61 @@ export default function DashboardPage() {
 
   return (
     <div>
-      {/* Mobile hero (only on the "My tasks" view, not on createdByMe) */}
+      {/* Hero band — shown on both breakpoints on the "My tasks" view */}
       {!createdByMe && !loading && (
-        <MobileHero
-          title={greetingFor(heroNow)}
-          accent={firstName}
-          body={heroBody}
-          // Ring reflects overall completion across all your tasks.
-          // When you have no tasks at all, show a sparkle instead of a meaningless 0.
-          progress={heroStats.noTasks ? null : heroStats.pct}
-          progressIcon={
-            heroStats.allDone ? CheckCircle2
-            : heroStats.noTasks ? Sparkles
-            : null
-          }
-          tiles={[
-            { tone: 'stat-blue',   label: 'Due today',   value: heroStats.dueToday,       Icon: ListTodo },
-            { tone: 'stat-orange', label: 'Overdue',     value: heroStats.overdueCount,   Icon: Flame, emphasise: heroStats.overdueCount > 0 },
-            { tone: 'stat-amber',  label: 'In progress', value: heroStats.inProgress,     Icon: Clock },
-            { tone: 'stat-green',  label: 'Done today',  value: heroStats.todayCompleted, Icon: CheckCircle2 },
-          ]}
-          alert={heroStats.overdueCount > 0 ? {
-            tone: 'danger',
-            message: (
-              <>
-                You have <span className="font-semibold" style={{ color: 'var(--color-urgent)' }}>
-                {heroStats.overdueCount} overdue task{heroStats.overdueCount === 1 ? '' : 's'}</span>. Catch up first so they don&apos;t snowball.
-              </>
-            ),
-          } : null}
-        />
+        <div className="lg:px-8 lg:pt-6 lg:pb-2">
+          <MobileHero
+            title={greetingFor(heroNow)}
+            accent={firstName}
+            body={heroBody}
+            // Ring reflects overall completion across all your tasks.
+            // When you have no tasks at all, show a sparkle instead of a meaningless 0.
+            progress={heroStats.noTasks ? null : heroStats.pct}
+            progressIcon={
+              heroStats.allDone ? CheckCircle2
+              : heroStats.noTasks ? Sparkles
+              : null
+            }
+            tiles={[
+              { tone: 'stat-blue',   label: 'Due today',   value: heroStats.dueToday,       Icon: ListTodo },
+              { tone: 'stat-orange', label: 'Overdue',     value: heroStats.overdueCount,   Icon: Flame, emphasise: heroStats.overdueCount > 0 },
+              { tone: 'stat-amber',  label: 'In progress', value: heroStats.inProgress,     Icon: Clock },
+              { tone: 'stat-green',  label: 'Done today',  value: heroStats.todayCompleted, Icon: CheckCircle2 },
+            ]}
+            alert={heroStats.overdueCount > 0 ? {
+              tone: 'danger',
+              message: (
+                <>
+                  You have <span className="font-semibold" style={{ color: 'var(--color-urgent)' }}>
+                  {heroStats.overdueCount} overdue task{heroStats.overdueCount === 1 ? '' : 's'}</span>. Catch up first so they don&apos;t snowball.
+                </>
+              ),
+            } : null}
+          />
+        </div>
       )}
 
-      {/* Desktop page header */}
-      <div className="hidden lg:block px-4 lg:px-8 pt-6 pb-4">
-        <h2 className="display-sm" style={{ fontWeight: 500 }}>
-          {createdByMe ? 'Tasks assigned by me' : 'My tasks'}
-        </h2>
-        <p className="mt-1 text-sm text-[color:var(--color-text-muted)]">
-          {createdByMe ? 'Tasks you have assigned to others' : 'Tasks assigned to you'}
-        </p>
-      </div>
+      {/* Desktop page header — shown only on the "Assigned by me" variant (the hero covers "My tasks") */}
+      {createdByMe && (
+        <div className="hidden lg:block px-4 lg:px-8 pt-6 pb-4">
+          <h2 className="display-sm" style={{ fontWeight: 500 }}>
+            Tasks assigned by me
+          </h2>
+          <p className="mt-1 text-sm text-[color:var(--color-text-muted)]">
+            Tasks you have assigned to others
+          </p>
+        </div>
+      )}
 
-      {/* Mobile section heading */}
-      <div className="lg:hidden px-4 pt-1 pb-1 flex items-baseline justify-between">
-        <h2 className="text-[17px] font-semibold" style={{ color: 'var(--color-text-strong)' }}>
+      {/* Section heading — shown on mobile (under hero) and desktop (under hero, above filters) */}
+      <div className="px-4 lg:px-8 pt-3 lg:pt-5 pb-1 flex items-baseline justify-between">
+        <h2
+          className="text-[17px] lg:text-[20px] font-semibold"
+          style={{ color: 'var(--color-text-strong)' }}
+        >
           {createdByMe ? 'Assigned by me' : 'Your tasks'}
         </h2>
-        <span className="text-xs" style={{ color: 'var(--color-text-muted)' }}>
+        <span className="text-xs lg:text-sm" style={{ color: 'var(--color-text-muted)' }}>
           {filteredTasks.length} {filteredTasks.length === 1 ? 'task' : 'tasks'}
         </span>
       </div>

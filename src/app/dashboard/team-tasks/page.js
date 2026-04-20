@@ -181,13 +181,8 @@ export default function TeamTasksPage() {
 
   return (
     <div>
-      {/* Desktop header */}
-      <div className="hidden lg:block px-4 lg:px-8 pt-6 pb-4">
-        <h2 className="display-sm" style={{ fontWeight: 500 }}>Team tasks</h2>
-        <p className="mt-1 text-sm text-[color:var(--color-text-muted)]">All tasks across the workspace.</p>
-      </div>
-
-      {/* Mobile hero */}
+      {/* Hero band — shown on both breakpoints */}
+      <div className="lg:px-8 lg:pt-6 lg:pb-2">
       <MobileHero
         title="Team"
         accent="tasks"
@@ -215,13 +210,17 @@ export default function TeamTasksPage() {
           ),
         } : null}
       />
+      </div>
 
-      {/* Mobile section count */}
-      <div className="lg:hidden px-4 pt-3 pb-1 flex items-baseline justify-between">
-        <h3 className="text-[15px] font-semibold" style={{ color: 'var(--color-text-strong)' }}>
+      {/* Section count — shown on both breakpoints */}
+      <div className="px-4 lg:px-8 pt-3 lg:pt-5 pb-1 flex items-baseline justify-between">
+        <h3
+          className="text-[15px] lg:text-[20px] font-semibold"
+          style={{ color: 'var(--color-text-strong)' }}
+        >
           {selectedTaskName ? `${selectedTaskName}'s tasks` : 'All team tasks'}
         </h3>
-        <span className="text-xs" style={{ color: 'var(--color-text-muted)' }}>
+        <span className="text-xs lg:text-sm" style={{ color: 'var(--color-text-muted)' }}>
           {displayed.length} {displayed.length === 1 ? 'task' : 'tasks'}
         </span>
       </div>

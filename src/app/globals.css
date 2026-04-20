@@ -386,10 +386,18 @@ input::placeholder, textarea::placeholder { color: rgba(0, 0, 0, 0.45); }
   justify-content: space-between;
   color: #ffffff;
   box-shadow: var(--shadow-1);
+  transition: transform 180ms cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 180ms ease;
 }
+.stat-tile:hover { transform: translateY(-2px); box-shadow: 0 8px 22px rgba(0, 40, 80, 0.18); }
 .stat-tile .stat-value { font-size: 26px; font-weight: 500; line-height: 1; }
 .stat-tile .stat-label { font-size: 12px; opacity: 0.95; font-weight: 500; }
 .stat-tile .stat-icon  { position: absolute; top: 12px; right: 12px; opacity: 0.35; }
+@media (min-width: 1024px) {
+  .stat-tile { padding: 18px 20px; min-height: 108px; }
+  .stat-tile .stat-value { font-size: 32px; }
+  .stat-tile .stat-label { font-size: 13px; }
+  .stat-tile .stat-icon  { top: 14px; right: 14px; }
+}
 .stat-blue   { background: linear-gradient(135deg, #0070cc 0%, #1883fd 100%); }
 .stat-orange { background: linear-gradient(135deg, #d53b00 0%, #ff6b1a 100%); }
 .stat-green  { background: linear-gradient(135deg, #0a7d3a 0%, #1ca352 100%); }

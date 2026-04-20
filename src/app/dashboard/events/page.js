@@ -123,25 +123,22 @@ export default function EventsPage() {
 
   return (
     <div>
-      {/* Mobile hero */}
-      <MobileHero
-        title="Your"
-        accent="calendar"
-        eyebrowIcon={CalendarDays}
-        eyebrow={`${events.length} event${events.length === 1 ? '' : 's'} total`}
-        body={eventsBody}
-        progressIcon={CalendarDays}
-        tiles={[
-          { tone: 'stat-blue',   label: 'Today',     value: eventStats.today,    Icon: CalendarCheck, emphasise: eventStats.today > 0 },
-          { tone: 'stat-amber',  label: 'This week', value: eventStats.thisWeek, Icon: CalendarClock },
-          { tone: 'stat-green',  label: 'Upcoming',  value: eventStats.upcoming, Icon: PartyPopper },
-          { tone: 'stat-violet', label: 'Past',      value: eventStats.past,     Icon: Calendar },
-        ]}
-      />
-
-      <div className="hidden lg:block px-4 lg:px-8 pt-6 pb-4">
-        <h2 className="display-sm" style={{ fontWeight: 500 }}>Calendar</h2>
-        <p className="mt-1 text-sm text-[color:var(--color-text-muted)]">Upcoming company events and activities.</p>
+      {/* Hero band — shown on both breakpoints */}
+      <div className="lg:px-8 lg:pt-6 lg:pb-2">
+        <MobileHero
+          title="Your"
+          accent="calendar"
+          eyebrowIcon={CalendarDays}
+          eyebrow={`${events.length} event${events.length === 1 ? '' : 's'} total`}
+          body={eventsBody}
+          progressIcon={CalendarDays}
+          tiles={[
+            { tone: 'stat-blue',   label: 'Today',     value: eventStats.today,    Icon: CalendarCheck, emphasise: eventStats.today > 0 },
+            { tone: 'stat-amber',  label: 'This week', value: eventStats.thisWeek, Icon: CalendarClock },
+            { tone: 'stat-green',  label: 'Upcoming',  value: eventStats.upcoming, Icon: PartyPopper },
+            { tone: 'stat-violet', label: 'Past',      value: eventStats.past,     Icon: Calendar },
+          ]}
+        />
       </div>
 
       <div

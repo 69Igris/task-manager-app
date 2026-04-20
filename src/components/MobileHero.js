@@ -56,19 +56,22 @@ export default function MobileHero({
       : { bg: 'rgba(213, 59, 0, 0.08)', border: 'rgba(213, 59, 0, 0.28)', fg: 'var(--color-urgent)' };
 
   return (
-    <div className="lg:hidden px-4 pt-4 pb-2 space-y-4">
+    <div className="px-4 pt-4 pb-2 lg:px-0 lg:pt-0 lg:pb-0 space-y-4 lg:space-y-5">
       {/* Greeting / heading + optional progress */}
-      <div className="mobile-hero p-5">
-        <div className="flex items-center justify-between gap-4">
+      <div className="mobile-hero p-5 lg:p-7">
+        <div className="flex items-center justify-between gap-4 lg:gap-6">
           <div className="min-w-0 flex-1">
             <div
-              className="inline-flex items-center gap-1.5 text-[11px] font-medium mb-1"
+              className="inline-flex items-center gap-1.5 text-[11px] lg:text-[12px] font-medium mb-1"
               style={{ color: 'rgba(255,255,255,0.78)' }}
             >
-              <EyebrowIcon className="h-3 w-3" />
+              <EyebrowIcon className="h-3 w-3 lg:h-3.5 lg:w-3.5" />
               {eyebrow || defaultEyebrow}
             </div>
-            <h1 className="text-[22px] leading-tight font-light" style={{ color: '#ffffff' }}>
+            <h1
+              className="text-[22px] lg:text-[30px] leading-tight font-light"
+              style={{ color: '#ffffff', letterSpacing: '-0.01em' }}
+            >
               {title}
               {accent ? (
                 <>
@@ -79,7 +82,7 @@ export default function MobileHero({
             </h1>
             {body && (
               <p
-                className="mt-1.5 text-[13px] leading-relaxed"
+                className="mt-1.5 lg:mt-2 text-[13px] lg:text-[14px] leading-relaxed max-w-xl"
                 style={{ color: 'rgba(255,255,255,0.86)' }}
               >
                 {body}
@@ -88,8 +91,8 @@ export default function MobileHero({
           </div>
 
           {showRing && (
-            <div className="relative h-20 w-20 shrink-0">
-              <svg className="progress-ring h-20 w-20" viewBox="0 0 72 72">
+            <div className="relative h-20 w-20 lg:h-24 lg:w-24 shrink-0">
+              <svg className="progress-ring h-full w-full" viewBox="0 0 72 72">
                 <circle cx="36" cy="36" r={radius} strokeWidth="5" stroke="rgba(255,255,255,0.22)" />
                 {hasNumericProgress && (
                   <circle
@@ -106,16 +109,16 @@ export default function MobileHero({
               <div className="absolute inset-0 flex items-center justify-center">
                 {showRingIcon ? (
                   <ProgressIcon
-                    className={`h-7 w-7 ${hasNumericProgress && pct >= 100 ? 'animate-celebrate' : ''}`}
+                    className={`h-7 w-7 lg:h-8 lg:w-8 ${hasNumericProgress && pct >= 100 ? 'animate-celebrate' : ''}`}
                     style={{ color: '#ffffff' }}
                   />
                 ) : hasNumericProgress ? (
                   <div className="text-center leading-none">
-                    <div className="text-[20px] font-light" style={{ color: '#ffffff' }}>
+                    <div className="text-[20px] lg:text-[24px] font-light" style={{ color: '#ffffff' }}>
                       {pct}
                     </div>
                     <div
-                      className="text-[9px] font-medium mt-0.5"
+                      className="text-[9px] lg:text-[10px] font-medium mt-0.5 tracking-wider"
                       style={{ color: 'rgba(255,255,255,0.78)' }}
                     >
                       {progressLabel}
@@ -128,9 +131,9 @@ export default function MobileHero({
         </div>
       </div>
 
-      {/* Stat tiles 2x2 */}
+      {/* Stat tiles — 2×2 on mobile, 4-up row on desktop */}
       {tiles.length > 0 && (
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
           {tiles.slice(0, 4).map((t, i) => (
             <StatTile key={i} {...t} />
           ))}
@@ -139,7 +142,7 @@ export default function MobileHero({
 
       {alert && alert.message && (
         <div
-          className="flex items-start gap-2.5 px-3.5 py-2.5"
+          className="flex items-start gap-2.5 px-3.5 py-2.5 lg:px-4 lg:py-3"
           style={{
             background: alertBg.bg,
             border: `1px solid ${alertBg.border}`,
@@ -147,7 +150,7 @@ export default function MobileHero({
           }}
         >
           <AlertIcon className="h-4 w-4 shrink-0 mt-0.5" style={{ color: alertBg.fg }} />
-          <p className="text-xs leading-relaxed" style={{ color: 'var(--color-text)' }}>
+          <p className="text-xs lg:text-sm leading-relaxed" style={{ color: 'var(--color-text)' }}>
             {alert.message}
           </p>
         </div>
