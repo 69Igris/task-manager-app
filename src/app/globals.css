@@ -389,6 +389,8 @@ input::placeholder, textarea::placeholder { color: rgba(0, 0, 0, 0.45); }
   transition: transform 180ms cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 180ms ease;
 }
 .stat-tile:hover { transform: translateY(-2px); box-shadow: 0 8px 22px rgba(0, 40, 80, 0.18); }
+a.stat-tile, a.stat-tile-link { text-decoration: none; cursor: pointer; }
+a.stat-tile:active, a.stat-tile-link:active { transform: scale(0.98); }
 .stat-tile .stat-value { font-size: 26px; font-weight: 500; line-height: 1; }
 .stat-tile .stat-label { font-size: 12px; opacity: 0.95; font-weight: 500; }
 .stat-tile .stat-icon  { position: absolute; top: 12px; right: 12px; opacity: 0.35; }

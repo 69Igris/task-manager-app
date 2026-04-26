@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { AlertTriangle, Sparkles } from 'lucide-react';
 
 /**
@@ -14,7 +15,7 @@ import { AlertTriangle, Sparkles } from 'lucide-react';
  *  - progress: number | null — 0-100 for the ring; pass null to hide ring
  *  - progressLabel: string — text shown under the number (default "PERCENT")
  *  - progressIcon: Component — icon shown inside ring when progress === 100 or when progress is null but icon provided
- *  - tiles: Array<{ tone, label, value, Icon, emphasise }> — up to 4 StatTiles (rendered 2x2)
+ *  - tiles: Array<{ tone, label, value, Icon, emphasise, href }> — up to 4 StatTiles (rendered 2x2). When `href` is present the tile becomes a Link.
  *  - alert: { tone?: 'danger' | 'warn', icon?: Component, message: ReactNode } — optional bottom banner
  */
 export default function MobileHero({
@@ -159,12 +160,20 @@ export default function MobileHero({
   );
 }
 
-function StatTile({ tone, label, value, Icon, emphasise }) {
-  return (
-    <div className={`stat-tile ${tone}`}>
+function StatTile({ tone, label, value, Icon, emphasise, href }) {
+  const inner = (
+    <>
       {Icon && <Icon className="stat-icon h-6 w-6" />}
       <div className={`stat-value ${emphasise ? 'animate-celebrate' : ''}`}>{value}</div>
       <div className="stat-label">{label}</div>
-    </div>
+    </>
   );
+  if (href) {
+    return (
+      <Link href={href} className={`stat-tile ${tone} stat-tile-link`} aria-label={`${label}: ${value}`}>
+        {inner}
+      </Link>
+    );
+  }
+  return <div className={`stat-tile ${tone}`}>{inner}</div>;
 }
