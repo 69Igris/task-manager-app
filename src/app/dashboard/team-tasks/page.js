@@ -7,6 +7,7 @@ import TaskDetailsModal from '@/components/TaskDetailsModal';
 import SwipeableTaskCard from '@/components/SwipeableTaskCard';
 import MobileHero from '@/components/MobileHero';
 import { useState, useEffect, useCallback } from 'react';
+import { useSearchParams } from 'next/navigation';
 import {
   Inbox, Calendar, MapPin, Settings2, User as UserIcon, Loader2, X, ArrowLeftRight,
   Users, ListTodo, Clock, Flame, CheckCircle2,
@@ -37,12 +38,19 @@ export default function TeamTasksPage() {
   const { user, fetchWithAuth } = useAuth();
   const { showToast } = useToast();
   const { showConfirm } = useConfirm();
+  const searchParams = useSearchParams();
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('all');
   const [selectedDate, setSelectedDate] = useState('');
   const [selectedTaskName, setSelectedTaskName] = useState('');
   const [selectedTask, setSelectedTask] = useState(null);
+
+  // Honor ?filter=<key> in the URL so hero tile deeplinks land on the right view.
+  useEffect(() => {
+    const filterParam = searchParams.get('filter');
+    if (filterParam && FILTERS.some((f) => f.key === filterParam)) setFilter(filterParam);
+  }, [searchParams]);
 
   const fetchAllTasks = useCallback(async () => {
     try {
@@ -193,10 +201,10 @@ export default function TeamTasksPage() {
         progressLabel="DONE"
         progressIcon={teamStats.total > 0 && teamStats.completed === teamStats.total ? CheckCircle2 : null}
         tiles={[
-          { tone: 'stat-blue',   label: 'Total',       value: teamStats.total,      Icon: ListTodo },
-          { tone: 'stat-orange', label: 'Overdue',     value: teamStats.overdue,    Icon: Flame, emphasise: teamStats.overdue > 0 },
-          { tone: 'stat-amber',  label: 'In progress', value: teamStats.inProgress, Icon: Clock },
-          { tone: 'stat-green',  label: 'Completed',   value: teamStats.completed,  Icon: CheckCircle2 },
+          { tone: 'stat-blue',   label: 'Total',       value: teamStats.total,      Icon: ListTodo,     href: '/dashboard/team-tasks?filter=all' },
+          { tone: 'stat-orange', label: 'Overdue',     value: teamStats.overdue,    Icon: Flame,        emphasise: teamStats.overdue > 0, href: '/dashboard/team-tasks?filter=overdue' },
+          { tone: 'stat-amber',  label: 'In progress', value: teamStats.inProgress, Icon: Clock,        href: '/dashboard/team-tasks?filter=in-progress' },
+          { tone: 'stat-green',  label: 'Completed',   value: teamStats.completed,  Icon: CheckCircle2, href: '/dashboard/team-tasks?filter=completed' },
         ]}
         alert={teamStats.overdue > 0 ? {
           tone: 'danger',

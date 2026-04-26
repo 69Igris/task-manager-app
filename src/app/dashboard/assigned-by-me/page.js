@@ -263,10 +263,10 @@ export default function AssignedByMePage() {
         progressLabel="DONE"
         progressIcon={allDone ? CheckCircle2 : null}
         tiles={[
-          { tone: 'stat-blue',   label: 'Total',       value: stats.totalTasks,      Icon: ListTodo },
-          { tone: 'stat-orange', label: 'Overdue',     value: stats.overdueTasks,    Icon: Flame, emphasise: stats.overdueTasks > 0 },
-          { tone: 'stat-amber',  label: 'In progress', value: stats.inProgressTasks, Icon: Clock },
-          { tone: 'stat-green',  label: 'Completed',   value: stats.completedTasks,  Icon: CheckCircle2 },
+          { tone: 'stat-blue',   label: 'Total',       value: stats.totalTasks,      Icon: ListTodo,     href: '/dashboard?filter=all&createdByMe=true' },
+          { tone: 'stat-orange', label: 'Overdue',     value: stats.overdueTasks,    Icon: Flame,        emphasise: stats.overdueTasks > 0, href: '/dashboard?filter=overdue&createdByMe=true' },
+          { tone: 'stat-amber',  label: 'In progress', value: stats.inProgressTasks, Icon: Clock,        href: '/dashboard?filter=in-progress&createdByMe=true' },
+          { tone: 'stat-green',  label: 'Completed',   value: stats.completedTasks,  Icon: CheckCircle2, href: '/dashboard?filter=completed&createdByMe=true' },
         ]}
         alert={stats.overdueTasks > 0 ? {
           tone: 'danger',

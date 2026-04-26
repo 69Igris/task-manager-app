@@ -242,10 +242,10 @@ export default function DashboardPage() {
               : null
             }
             tiles={[
-              { tone: 'stat-blue',   label: 'Due today',   value: heroStats.dueToday,       Icon: ListTodo },
-              { tone: 'stat-orange', label: 'Overdue',     value: heroStats.overdueCount,   Icon: Flame, emphasise: heroStats.overdueCount > 0 },
-              { tone: 'stat-amber',  label: 'In progress', value: heroStats.inProgress,     Icon: Clock },
-              { tone: 'stat-green',  label: 'Done today',  value: heroStats.todayCompleted, Icon: CheckCircle2 },
+              { tone: 'stat-blue',   label: 'Due today',   value: heroStats.dueToday,       Icon: ListTodo,     href: '/dashboard?filter=all' },
+              { tone: 'stat-orange', label: 'Overdue',     value: heroStats.overdueCount,   Icon: Flame,        emphasise: heroStats.overdueCount > 0, href: '/dashboard?filter=overdue' },
+              { tone: 'stat-amber',  label: 'In progress', value: heroStats.inProgress,     Icon: Clock,        href: '/dashboard?filter=in-progress' },
+              { tone: 'stat-green',  label: 'Done today',  value: heroStats.todayCompleted, Icon: CheckCircle2, href: '/dashboard?filter=completed' },
             ]}
             alert={heroStats.overdueCount > 0 ? {
               tone: 'danger',
