@@ -21,7 +21,7 @@ model User {
   createdTasks  Task[]     @relation("CreatedTasks")
   comments      Comment[]
   refreshTokens RefreshToken[]
-  createdEvents Event[]
+  createdNotes  Note[]
   notifications Notification[]
 }
 
@@ -98,16 +98,21 @@ model Comment {
   @@index([parentId])
 }
 
-model Event {
+model Note {
   id            String     @id @default(auto()) @map("_id") @db.ObjectId
-  title         String     // e.g., "Audit", "Safety Meeting"
-  description   String?
-  eventDate     DateTime   // When the event will occur
+  title         String
+  items         NoteItem[]
   createdBy     String     @db.ObjectId
   creator       User       @relation(fields: [createdBy], references: [id], onDelete: Cascade)
   createdAt     DateTime   @default(now())
   updatedAt     DateTime   @updatedAt
 
-  @@index([eventDate])
   @@index([createdBy])
+}
+
+type NoteItem {
+  id        String
+  type      String   // "bullet" | "task"
+  content   String
+  completed Boolean  @default(false)
 }

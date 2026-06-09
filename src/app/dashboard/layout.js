@@ -6,10 +6,9 @@ import { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
 import {
   Bell, LogOut, Plus, Inbox, Send, Users,
-  ListTodo, Calendar, User as UserIcon, Download, Loader2,
+  ListTodo, Notebook, User as UserIcon, Download, Loader2, Edit3
 } from 'lucide-react';
 import AddTaskModal from '@/components/AddTaskModal';
-import AddEventModal from '@/components/AddEventModal';
 import NotificationDropdown from '@/components/NotificationDropdown';
 import TaskDetailsModal from '@/components/TaskDetailsModal';
 
@@ -17,25 +16,25 @@ const NAV = [
   { path: '/dashboard',                 label: 'My tasks',    Icon: ListTodo, short: 'Tasks' },
   { path: '/dashboard/assigned-by-me',  label: 'Assigned',    Icon: Send,     short: 'Assigned' },
   { path: '/dashboard/team-tasks',      label: 'Team',        Icon: Users,    short: 'Team' },
-  { path: '/dashboard/events',          label: 'Calendar',    Icon: Calendar, short: 'Calendar' },
+  { path: '/dashboard/notes',           label: 'Notes',       Icon: Edit3, short: 'Notes' },
   { path: '/dashboard/export',          label: 'Export',      Icon: Download, short: 'Export' },
   { path: '/dashboard/profile',         label: 'Profile',     Icon: UserIcon, short: 'Profile' },
 ];
 
 // Mobile nav is a tighter subset
-const MOBILE_NAV = NAV.filter((n) => ['Tasks', 'Assigned', 'Team', 'Calendar', 'Profile'].includes(n.short));
+const MOBILE_NAV = NAV.filter((n) => ['Tasks', 'Assigned', 'Team', 'Notes', 'Profile'].includes(n.short));
 
 export default function DashboardLayout({ children }) {
   const { user, loading, logout, fetchWithAuth } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
   const [showAddTask, setShowAddTask] = useState(false);
-  const [showAddEvent, setShowAddEvent] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
   const [selectedTask, setSelectedTask] = useState(null);
 
-  const isEventsPage = pathname === '/dashboard/events';
+  // Notes doesn't need a separate global add modal, let's keep it simple.
+  const isNotesPage = pathname === '/dashboard/notes';
 
   useEffect(() => {
     if (!loading && !user) router.push('/login');
@@ -200,12 +199,12 @@ export default function DashboardLayout({ children }) {
 
           <div className="flex items-center gap-2">
             <button
-              onClick={() => (isEventsPage ? setShowAddEvent(true) : setShowAddTask(true))}
+              onClick={() => (isNotesPage ? (() => {})(true) : setShowAddTask(true))}
               className="btn-primary"
               style={{ padding: '7px 14px', fontSize: 13 }}
             >
               <Plus className="h-4 w-4" />
-              <span className="hidden sm:inline">{isEventsPage ? 'New event' : 'New task'}</span>
+              <span className="hidden sm:inline">{isNotesPage ? 'New event' : 'New task'}</span>
             </button>
 
             <div className="relative">
@@ -286,13 +285,13 @@ export default function DashboardLayout({ children }) {
 
       {/* Mobile FAB */}
       <button
-        onClick={() => (isEventsPage ? setShowAddEvent(true) : setShowAddTask(true))}
+        onClick={() => (isNotesPage ? (() => {})(true) : setShowAddTask(true))}
         className="lg:hidden fixed bottom-20 right-4 h-14 w-14 rounded-full flex items-center justify-center text-white z-20 animate-fab-pulse active:scale-95 transition-transform"
         style={{
           background: 'linear-gradient(135deg, #0070cc 0%, #00a0d9 100%)',
           boxShadow: '0 10px 28px rgba(0, 112, 204, 0.42)',
         }}
-        aria-label={isEventsPage ? 'Add event' : 'Add task'}
+        aria-label={isNotesPage ? 'Add event' : 'Add task'}
       >
         <Plus className="h-6 w-6" strokeWidth={2.5} />
       </button>
@@ -306,11 +305,7 @@ export default function DashboardLayout({ children }) {
           fetchUnreadCount();
         }}
       />
-      <AddEventModal
-        isOpen={showAddEvent}
-        onClose={() => setShowAddEvent(false)}
-        onEventAdded={() => router.push(`/dashboard/events?refresh=${Date.now()}`)}
-      />
+      
       {selectedTask && (
         <TaskDetailsModal
           task={selectedTask}
