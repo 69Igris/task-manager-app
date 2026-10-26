@@ -16,6 +16,7 @@ The project is currently functional end-to-end with:
 - In-app notifications + mark-as-read
 - PWA support (manifest + service worker)
 - CSV export of completed tasks by date range
+- AI project assistant: natural-language sprint summaries, priorities, daily briefings and sprint planning, with human approval for every change (see [AI_ASSISTANT.md](AI_ASSISTANT.md))
 
 Core API routes currently available:
 
@@ -24,6 +25,7 @@ Core API routes currently available:
 - `events`: `/api/events`, `/api/events/[id]`
 - `notifications`: `/api/notifications`, `/api/notifications/[id]/read`, `/api/notifications/subscribe`, `/api/notifications/check-reminders`
 - `users`: `/api/users`
+- `ai`: `/api/ai/chat`, `/api/ai/status`, `/api/ai/conversations`, `/api/ai/conversations/[id]`, `/api/ai/proposals/[id]`, `/api/ai/proposals/[id]/approve`, `/api/ai/proposals/[id]/reject`
 - `health`: `/api/health`
 
 ## Tech Stack
@@ -31,6 +33,8 @@ Core API routes currently available:
 - Next.js 16 (App Router)
 - React 19
 - Prisma 5 + MongoDB
+- Groq or Anthropic Claude (tool calling) for the AI assistant, Zod for validation
+- Vitest for tests
 - JWT (`jsonwebtoken`) + `bcryptjs`
 - Tailwind CSS 4
 - PWA support with `next-pwa`
@@ -69,6 +73,10 @@ Required variables:
 - `VAPID_EMAIL`
 - `NODE_ENV` (typically `development` locally)
 
+Optional (AI assistant):
+
+- `AI_PROVIDER` (`groq` or `anthropic`) plus `GROQ_API_KEY` or `ANTHROPIC_API_KEY` enable the assistant. All `AI_*` settings (model, limits, timezone, approval policy) are listed in `.env.example`.
+
 ## Guest Credentials (Seeded Users)
 
 After running `npm run prisma:seed`, you can log in with any of these guest accounts:
@@ -84,6 +92,8 @@ or freely create One.
 - `npm run build` - Generate Prisma client + production build
 - `npm run start` - Start production server
 - `npm run lint` - Run ESLint
+- `npm test` - Run the test suite (set `TEST_DATABASE_URL` for database integration tests; see [AI_ASSISTANT.md](AI_ASSISTANT.md#tests))
+- `node scripts/seed-ai-demo.js` - Add demo sprint data for the AI assistant (additive)
 - `npm run prisma:generate` - Generate Prisma client
 - `npm run prisma:seed` - Seed sample data
 - `npm run db:seed` - Generate client + seed data

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { requireAuth } from '@/lib/auth';
+import { changeTaskStatus, TASK_STATUSES } from '@/lib/tasks/service';
 
 // GET /api/tasks/[id] - Get single task
 export async function GET(request, { params }) {
@@ -77,8 +78,7 @@ export async function PATCH(request, { params }) {
     const { status } = body;
 
     // Validate status
-    const validStatuses = ['pending', 'in-progress', 'completed'];
-    if (!validStatuses.includes(status)) {
+    if (!TASK_STATUSES.includes(status)) {
       return NextResponse.json({ error: 'Invalid status' }, { status: 400 });
     }
 
@@ -107,74 +107,13 @@ export async function PATCH(request, { params }) {
       );
     }
 
-    // Update task
-    const updateData = { status };
-    
-    // Set completedAt when status changes to completed
-    if (status === 'completed' && task.status !== 'completed') {
-      updateData.completedAt = new Date();
-    }
-    
-    // Clear completedAt if status changes from completed
-    if (status !== 'completed' && task.status === 'completed') {
-      updateData.completedAt = null;
-    }
-
-    const updatedTask = await prisma.task.update({
-      where: { id },
-      data: updateData,
-      include: {
-        creator: {
-          select: { id: true, name: true, email: true },
-        },
-      },
-    });
+    const updatedTask = await changeTaskStatus(prisma, task, user.id, status);
 
     // Fetch assigned users
     const assignedUsers = await prisma.user.findMany({
       where: { id: { in: updatedTask.assignedTo } },
       select: { id: true, name: true, email: true },
     });
-
-    // Create notifications for status change (except for the user who made the change)
-    if (status !== task.status) {
-      const now = new Date();
-      const expiresAt = new Date(now.getTime() + 6 * 60 * 60 * 1000);
-      const statusMessages = {
-        'pending': 'is now pending',
-        'in-progress': 'is now in progress',
-        'completed': 'has been completed'
-      };
-      
-      await Promise.all(
-        updatedTask.assignedTo
-          .filter(userId => userId !== user.id) // Don't notify the person who made the change
-          .map(userId =>
-            prisma.notification.create({
-              data: {
-                userId,
-                taskId: updatedTask.id,
-                type: 'status_update',
-                message: `Task "${updatedTask.title}" ${statusMessages[status]}`,
-                expiresAt,
-              },
-            })
-          )
-      );
-
-      // Also notify the creator if they're not the one making the change and not in assignedTo
-      if (task.createdBy !== user.id && !updatedTask.assignedTo.includes(task.createdBy)) {
-        await prisma.notification.create({
-          data: {
-            userId: task.createdBy,
-            taskId: updatedTask.id,
-            type: 'status_update',
-            message: `Task "${updatedTask.title}" ${statusMessages[status]}`,
-            expiresAt,
-          },
-        });
-      }
-    }
 
     return NextResponse.json({ task: { ...updatedTask, assignedUsers } });
   } catch (error) {

@@ -23,6 +23,8 @@ model User {
   refreshTokens RefreshToken[]
   createdNotes  Note[]
   notifications Notification[]
+  agentConversations AgentConversation[]
+  agentProposals     AgentProposal[]
 }
 
 model RefreshToken {
@@ -115,4 +117,52 @@ type NoteItem {
   type      String   // "bullet" | "task"
   content   String
   completed Boolean  @default(false)
+}
+
+// ---------------------------------------------------------------------------
+// AI assistant
+// ---------------------------------------------------------------------------
+
+// A chat thread with the AI assistant. Only user prompts and the assistant's
+// final replies are stored (bounded); tool output is never persisted, so the
+// agent always re-reads tasks from the database instead of trusting history.
+model AgentConversation {
+  id            String          @id @default(auto()) @map("_id") @db.ObjectId
+  userId        String          @db.ObjectId
+  user          User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title         String
+  project       String?         // Last project (Task.equipment) the agent worked with
+  messages      AgentMessage[]
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+
+  @@index([userId, updatedAt])
+}
+
+type AgentMessage {
+  role            String   // "user" | "assistant"
+  content         String
+  proposalId      String?
+  clientMessageId String?  // Client-generated id; lets retried requests return the stored reply
+  createdAt       DateTime @default(now())
+}
+
+// A batch of write actions proposed by the agent. Nothing in `actions` touches
+// tasks until the owner approves it; status transitions are atomic so a retried
+// approval can never execute the batch twice.
+model AgentProposal {
+  id             String    @id @default(auto()) @map("_id") @db.ObjectId
+  userId         String    @db.ObjectId
+  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  conversationId String?   @db.ObjectId
+  status         String    @default("pending") // pending | executing | executed | partially_failed | failed | cancelled | expired
+  summary        String
+  actions        Json      // [{ id, tool, args, preview }]
+  results        Json?     // [{ actionId, status, message, taskId? }]
+  createdAt      DateTime  @default(now())
+  expiresAt      DateTime
+  decidedAt      DateTime?
+
+  @@index([userId, status])
+  @@index([conversationId])
 }

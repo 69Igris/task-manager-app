@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { requireAuth } from '@/lib/auth';
+import { addTaskComment } from '@/lib/tasks/service';
 
 // GET /api/tasks/[id]/comments - Get all comments for a task
 export async function GET(request, { params }) {
@@ -110,64 +111,7 @@ export async function POST(request, { params }) {
       }
     }
 
-    // Create comment
-    const comment = await prisma.comment.create({
-      data: {
-        content: content.trim(),
-        taskId: id,
-        authorId: user.id,
-        parentId: parentId || null,
-      },
-      include: {
-        author: {
-          select: { id: true, name: true, email: true },
-        },
-      },
-    });
-
-    // Create notifications for comment
-    const now = new Date();
-    const expiresAt = new Date(now.getTime() + 6 * 60 * 60 * 1000);
-    const notificationMessage = parentId 
-      ? `${user.name} replied to a comment on "${task.title}"`
-      : `${user.name} commented on "${task.title}"`;
-    
-    // Notify all assigned users except the commenter
-    const usersToNotify = new Set(task.assignedTo.filter(userId => userId !== user.id));
-    
-    // Also notify the creator if they're not the commenter
-    if (task.createdBy !== user.id) {
-      usersToNotify.add(task.createdBy);
-    }
-
-    // If it's a reply, notify the parent comment author
-    if (parentId) {
-      const parentComment = await prisma.comment.findUnique({
-        where: { id: parentId },
-        select: { authorId: true },
-      });
-      if (parentComment && parentComment.authorId !== user.id) {
-        usersToNotify.add(parentComment.authorId);
-      }
-    }
-
-    try {
-      await Promise.all(
-        Array.from(usersToNotify).map(userId =>
-          prisma.notification.create({
-            data: {
-              userId,
-              taskId: id,
-              type: 'comment',
-              message: notificationMessage,
-              expiresAt,
-            },
-          })
-        )
-      );
-    } catch (notifError) {
-      console.error('Error creating comment notifications:', notifError);
-    }
+    const comment = await addTaskComment(prisma, task, user, content, parentId || null);
 
     return NextResponse.json({ comment }, { status: 201 });
   } catch (error) {
