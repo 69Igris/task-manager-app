@@ -6,7 +6,7 @@ import { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
 import {
   Bell, LogOut, Plus, Inbox, Send, Users,
-  ListTodo, Notebook, User as UserIcon, Download, Loader2, Edit3
+  ListTodo, Notebook, User as UserIcon, Download, Loader2, Edit3, Sparkles
 } from 'lucide-react';
 import AddTaskModal from '@/components/AddTaskModal';
 import NotificationDropdown from '@/components/NotificationDropdown';
@@ -35,6 +35,8 @@ export default function DashboardLayout({ children }) {
 
   // Notes doesn't need a separate global add modal, let's keep it simple.
   const isNotesPage = pathname === '/dashboard/notes';
+  // The assistant has its own composer where the FAB would sit.
+  const isAssistantPage = pathname === '/dashboard/assistant';
 
   useEffect(() => {
     if (!loading && !user) router.push('/login');
@@ -193,7 +195,7 @@ export default function DashboardLayout({ children }) {
 
           <div className="hidden lg:flex items-center">
             <h1 className="text-[15px] font-medium text-[color:var(--color-text)]">
-              {NAV.find((n) => n.path === pathname)?.label || 'Dashboard'}
+              {NAV.find((n) => n.path === pathname)?.label || (isAssistantPage ? 'Assistant' : 'Dashboard')}
             </h1>
           </div>
 
@@ -284,17 +286,35 @@ export default function DashboardLayout({ children }) {
       </nav>
 
       {/* Mobile FAB */}
-      <button
-        onClick={() => (isNotesPage ? (() => {})(true) : setShowAddTask(true))}
-        className="lg:hidden fixed bottom-20 right-4 h-14 w-14 rounded-full flex items-center justify-center text-white z-20 animate-fab-pulse active:scale-95 transition-transform"
-        style={{
-          background: 'linear-gradient(135deg, #0070cc 0%, #00a0d9 100%)',
-          boxShadow: '0 10px 28px rgba(0, 112, 204, 0.42)',
-        }}
-        aria-label={isNotesPage ? 'Add event' : 'Add task'}
-      >
-        <Plus className="h-6 w-6" strokeWidth={2.5} />
-      </button>
+      {!isAssistantPage && (
+        <button
+          onClick={() => (isNotesPage ? (() => {})(true) : setShowAddTask(true))}
+          className="lg:hidden fixed bottom-20 right-4 h-14 w-14 rounded-full flex items-center justify-center text-white z-20 animate-fab-pulse active:scale-95 transition-transform"
+          style={{
+            background: 'linear-gradient(135deg, #0070cc 0%, #00a0d9 100%)',
+            boxShadow: '0 10px 28px rgba(0, 112, 204, 0.42)',
+          }}
+          aria-label={isNotesPage ? 'Add event' : 'Add task'}
+        >
+          <Plus className="h-6 w-6" strokeWidth={2.5} />
+        </button>
+      )}
+
+      {/* AI assistant FAB (bottom left; sits beside the sidebar on desktop) */}
+      {!isAssistantPage && (
+        <Link
+          href="/dashboard/assistant"
+          className="fixed bottom-20 left-4 lg:bottom-6 lg:left-[calc(15rem+1.5rem)] h-14 w-14 rounded-full flex items-center justify-center text-white z-20 active:scale-95 hover:scale-105 transition-transform"
+          style={{
+            background: 'linear-gradient(135deg, #0070cc 0%, #00a0d9 100%)',
+            boxShadow: '0 10px 28px rgba(0, 112, 204, 0.42)',
+          }}
+          aria-label="Open AI assistant"
+          title="AI assistant"
+        >
+          <Sparkles className="h-6 w-6" strokeWidth={2.2} />
+        </Link>
+      )}
 
       {/* Modals */}
       <AddTaskModal
