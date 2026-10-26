@@ -5,12 +5,13 @@ import { useRouter, usePathname } from 'next/navigation';
 import { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
 import {
-  Bell, LogOut, Plus, Inbox, Send, Users,
+  Bell, LogOut, Plus, Inbox, Send, Users, X,
   ListTodo, Notebook, User as UserIcon, Download, Loader2, Edit3, Sparkles
 } from 'lucide-react';
 import AddTaskModal from '@/components/AddTaskModal';
 import NotificationDropdown from '@/components/NotificationDropdown';
 import TaskDetailsModal from '@/components/TaskDetailsModal';
+import AssistantChat from '@/components/assistant/AssistantChat';
 
 const NAV = [
   { path: '/dashboard',                 label: 'My tasks',    Icon: ListTodo, short: 'Tasks' },
@@ -32,6 +33,10 @@ export default function DashboardLayout({ children }) {
   const [showNotifications, setShowNotifications] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
   const [selectedTask, setSelectedTask] = useState(null);
+  // Desktop assistant popup. Mounted on first open and then kept mounted, so
+  // closing and reopening keeps the conversation.
+  const [assistantOpen, setAssistantOpen] = useState(false);
+  const [assistantMounted, setAssistantMounted] = useState(false);
 
   // Notes doesn't need a separate global add modal, let's keep it simple.
   const isNotesPage = pathname === '/dashboard/notes';
@@ -77,6 +82,18 @@ export default function DashboardLayout({ children }) {
     window.addEventListener('refreshNotifications', onRefresh);
     return () => window.removeEventListener('refreshNotifications', onRefresh);
   }, [fetchUnreadCount]);
+
+  useEffect(() => {
+    if (!assistantOpen) return;
+    const onKey = (e) => e.key === 'Escape' && setAssistantOpen(false);
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [assistantOpen]);
+
+  const toggleAssistant = () => {
+    setAssistantMounted(true);
+    setAssistantOpen((o) => !o);
+  };
 
   const handleTaskClick = async (taskId) => {
     try {
@@ -300,11 +317,11 @@ export default function DashboardLayout({ children }) {
         </button>
       )}
 
-      {/* AI assistant FAB (bottom left; sits beside the sidebar on desktop) */}
+      {/* AI assistant: mobile opens the full page (bottom left) */}
       {!isAssistantPage && (
         <Link
           href="/dashboard/assistant"
-          className="fixed bottom-20 left-4 lg:bottom-6 lg:left-[calc(15rem+1.5rem)] h-14 w-14 rounded-full flex items-center justify-center text-white z-20 active:scale-95 hover:scale-105 transition-transform"
+          className="lg:hidden fixed bottom-20 left-4 h-14 w-14 rounded-full flex items-center justify-center text-white z-20 active:scale-95 transition-transform"
           style={{
             background: 'linear-gradient(135deg, #0070cc 0%, #00a0d9 100%)',
             boxShadow: '0 10px 28px rgba(0, 112, 204, 0.42)',
@@ -314,6 +331,35 @@ export default function DashboardLayout({ children }) {
         >
           <Sparkles className="h-6 w-6" strokeWidth={2.2} />
         </Link>
+      )}
+
+      {/* AI assistant: desktop popup chat (bottom right) */}
+      {!isAssistantPage && (
+        <>
+          {assistantMounted && (
+            <div
+              role="dialog"
+              aria-label="AI assistant"
+              className={`${assistantOpen ? 'lg:flex' : ''} hidden fixed bottom-24 right-6 z-40 w-[420px] h-[min(640px,calc(100vh-9rem))] flex-col overflow-hidden rounded-2xl border bg-white animate-slide-up`}
+              style={{ borderColor: 'var(--color-border)', boxShadow: 'var(--shadow-3)' }}
+            >
+              <AssistantChat variant="popup" onClose={() => setAssistantOpen(false)} />
+            </div>
+          )}
+          <button
+            onClick={toggleAssistant}
+            className="hidden lg:flex fixed bottom-6 right-6 h-14 w-14 rounded-full items-center justify-center text-white z-40 active:scale-95 hover:scale-105 transition-transform"
+            style={{
+              background: 'linear-gradient(135deg, #0070cc 0%, #00a0d9 100%)',
+              boxShadow: '0 10px 28px rgba(0, 112, 204, 0.42)',
+            }}
+            aria-label={assistantOpen ? 'Close AI assistant' : 'Open AI assistant'}
+            aria-expanded={assistantOpen}
+            title="AI assistant"
+          >
+            {assistantOpen ? <X className="h-6 w-6" strokeWidth={2.2} /> : <Sparkles className="h-6 w-6" strokeWidth={2.2} />}
+          </button>
+        </>
       )}
 
       {/* Modals */}

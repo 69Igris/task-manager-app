@@ -2,7 +2,7 @@
 
 An agentic project assistant built into TaskForge. You describe what you want in plain language. The assistant reads live TaskForge data you have access to, calls an explicit set of server-side tools, and explains what it found. Any change it wants to make is shown as a preview and runs only after you approve it.
 
-Open it from **Assistant** in the sidebar (**AI** in the mobile nav), at `/dashboard/assistant`.
+Open it with the floating ✦ button. On desktop the button sits in the bottom-right corner and opens a chat popup; press Escape or ✕ to close it, or ⤢ to open the full page. On mobile it sits in the bottom-left corner and opens the full page at `/dashboard/assistant`.
 
 ## What it can do
 
